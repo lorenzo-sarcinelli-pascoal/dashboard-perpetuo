@@ -1,0 +1,24 @@
+{
+  "name": "Dashboard Perpetuo — Tracking HighEnd",
+  "short_name": "THE Dashboard",
+  "description": "Dashboard de funil perpetuo com dados do Google Sheets",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0F172A",
+  "theme_color": "#0F172A",
+  "icons": [
+    {
+      "src": "icons/app-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
