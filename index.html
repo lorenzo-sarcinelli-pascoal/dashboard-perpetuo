@@ -139,12 +139,66 @@
     ul, ol { padding-left: 18px; line-height: 1.65; }
     .overflow-x { overflow-x: auto; }
 
+    /* Insights Bar */
+    .insights-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 24px; padding: 12px 16px; background: var(--surface-01); border: 1px solid var(--border); border-radius: 12px; }
+    .insights-bar label { margin-bottom: 0; }
+    .insights-bar input[type="text"] { min-width: 90px; max-width: 120px; }
+    .insights-bar select { min-width: 160px; }
+
+    /* Insights Section */
+    .insights-section { background: var(--surface-01); border: 1px solid var(--border); border-left: 3px solid var(--accent-04); border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+    .insights-section .section-title { color: var(--accent-04); margin-bottom: 16px; font-size: 13px; }
+    .insights-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .insight-card { background: var(--surface-02); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+    .insight-card .ic-label { font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); font-weight: 700; margin-bottom: 6px; }
+    .insight-card .ic-value { font-size: 22px; font-weight: 700; margin-bottom: 4px; font-variant-numeric: tabular-nums; }
+    .insight-card .ic-sub { font-size: 11px; color: var(--muted); }
+
+    /* Progress bar */
+    .progress-track { width: 100%; height: 24px; background: var(--surface-02); border-radius: 12px; overflow: hidden; margin: 12px 0; position: relative; border: 1px solid var(--border); }
+    .progress-fill { height: 100%; border-radius: 12px; transition: width .6s ease; display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; font-size: 11px; font-weight: 700; color: #fff; min-width: 40px; }
+    .progress-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+
+    /* Insights sub-sections */
+    .ins-block { margin-bottom: 20px; }
+    .ins-block:last-child { margin-bottom: 0; }
+    .ins-block-title { font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--accent-03); font-weight: 700; margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+
+    /* Creative audit table */
+    .tier-tag { font-size: 10px; font-weight: 700; border-radius: 4px; padding: 2px 8px; display: inline-block; }
+    .tier-winner { background: rgba(88,212,23,.15); color: var(--success); }
+    .tier-mediocre { background: rgba(255,195,15,.15); color: var(--warning); }
+    .tier-loser { background: rgba(252,113,72,.15); color: var(--danger); }
+
+    /* Action plan */
+    .action-list { list-style: none; padding-left: 0; counter-reset: action-counter; }
+    .action-item { counter-increment: action-counter; padding: 12px 14px; background: var(--surface-02); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; display: flex; align-items: flex-start; gap: 12px; }
+    .action-item::before { content: counter(action-counter); display: flex; align-items: center; justify-content: center; min-width: 28px; height: 28px; background: var(--accent-02); color: #fff; border-radius: 50%; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+    .action-body { flex: 1; }
+    .action-body strong { display: block; font-size: 13px; margin-bottom: 2px; }
+    .action-body span { font-size: 11px; color: var(--muted); }
+    .action-impact { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 6px; white-space: nowrap; align-self: center; }
+    .impact-save { background: rgba(88,212,23,.12); color: var(--success); }
+    .impact-add { background: rgba(23,150,212,.12); color: var(--accent-02); }
+    .impact-test { background: rgba(255,195,15,.12); color: var(--warning); }
+
+    /* Day-of-week heatmap */
+    .dow-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 8px; }
+    .dow-cell { text-align: center; padding: 10px 4px; border-radius: 8px; border: 1px solid var(--border); }
+    .dow-cell .dow-day { font-size: 10px; text-transform: uppercase; font-weight: 700; color: var(--muted); margin-bottom: 4px; }
+    .dow-cell .dow-val { font-size: 14px; font-weight: 700; }
+    .dow-cell .dow-sub { font-size: 10px; color: var(--muted); }
+
     @media (max-width: 980px) {
       .grid4,.grid5,.grid6,.grid8,.grid3,.split { grid-template-columns: 1fr; }
       .chart-grid { grid-template-columns: 1fr; }
       .header { flex-direction: column; }
       .filter-bar { flex-direction: row; }
       .the-logo { height: 32px; }
+      .insights-grid { grid-template-columns: 1fr 1fr; }
+      .dow-grid { grid-template-columns: repeat(4, 1fr); }
+      .action-item { flex-direction: column; gap: 8px; }
+      .action-impact { align-self: flex-start; }
     }
   </style>
 </head>
@@ -182,6 +236,24 @@
     <button class="quick-btn" id="btnThisMonth">Este mes</button>
     <div class="filter-sep"></div>
     <button class="quick-btn" id="btnClearFilter" style="color:var(--danger);">Limpar</button>
+  </div>
+
+  <!-- INSIGHTS BAR -->
+  <div class="insights-bar" id="insightsBar" style="display:none;">
+    <label style="font-size:12px;color:var(--accent-04);margin-right:2px;font-weight:700;">Insights &amp; Escala</label>
+    <div class="filter-sep"></div>
+    <label>Meta:</label>
+    <select id="insightsTargetType" style="min-width:150px;">
+      <option value="lucro">Lucro do projeto</option>
+      <option value="faturamento">Faturamento bruto</option>
+    </select>
+    <label>R$</label>
+    <input type="text" id="insightsTargetValue" value="10000" style="min-width:90px;max-width:120px;" />
+    <div class="filter-sep"></div>
+    <label>Taxa plataforma %</label>
+    <input type="text" id="insightsPlatformFee" value="12.8" style="min-width:60px;max-width:80px;" />
+    <div class="filter-sep"></div>
+    <button class="primary" id="btnGenerateInsights">Gerar Insights</button>
   </div>
 
   <!-- CONFIG PANEL -->
@@ -338,6 +410,9 @@
       </div>
     </div>
 
+    <!-- Insights & Escala -->
+    <section class="insights-section" id="insightsSection" style="display:none;"></section>
+
     <!-- Faturamento por Oferta -->
     <section class="section" id="sectionOffer">
       <p class="section-title">Faturamento por oferta</p>
@@ -424,7 +499,10 @@ function getConfig() {
     dateFrom: saved.dateFrom || '',
     dateTo: saved.dateTo || '',
     sources: saved.sources || ['Meta_Ads','bio','manychat','hubla'],
-    statusFilter: saved.statusFilter || 'paid'
+    statusFilter: saved.statusFilter || 'paid',
+    insightsTargetType: saved.insightsTargetType || 'lucro',
+    insightsTargetValue: saved.insightsTargetValue || '10000',
+    insightsPlatformFee: saved.insightsPlatformFee || '12.8'
   };
 }
 
@@ -444,6 +522,9 @@ function populateConfigUI(cfg) {
   const srcSel = $('cfgSources');
   for (const opt of srcSel.options) opt.selected = cfg.sources.includes(opt.value);
   toggleNameFields();
+  $('insightsTargetType').value = cfg.insightsTargetType || 'lucro';
+  $('insightsTargetValue').value = cfg.insightsTargetValue || '10000';
+  $('insightsPlatformFee').value = cfg.insightsPlatformFee || '12.8';
 }
 
 function readConfigFromUI() {
@@ -464,7 +545,10 @@ function readConfigFromUI() {
     dateFrom: $('cfgDateFrom').value,
     dateTo: $('cfgDateTo').value,
     sources,
-    statusFilter: $('cfgStatus').value
+    statusFilter: $('cfgStatus').value,
+    insightsTargetType: $('insightsTargetType').value,
+    insightsTargetValue: $('insightsTargetValue').value,
+    insightsPlatformFee: $('insightsPlatformFee').value
   };
 }
 
@@ -940,6 +1024,269 @@ function renderSplit(kpi, byCampaign, bySource) {
   $('splitWhy').innerHTML = why.join('');
 }
 
+/* ============================================================
+   INSIGHTS & ESCALA ENGINE
+   ============================================================ */
+function generateInsights(finalData, cfg) {
+  const targetType = $('insightsTargetType').value;
+  const targetValue = parseFloat(String($('insightsTargetValue').value).replace(/\./g,'').replace(',','.')) || 10000;
+  const platformFeePct = parseFloat(String($('insightsPlatformFee').value).replace(',','.')) || 12.8;
+
+  const kpi = finalData.kpi;
+  const byDay = finalData.byDay;
+  const byCreative = finalData.byCreative;
+  const bySource = finalData.bySource;
+  const vendas = finalData.vendas;
+  const meta = finalData.meta;
+
+  /* --- a) Projection engine --- */
+  const activeDays = byDay.filter(d => d.revenue > 0 || d.spend > 0).length;
+  const daysForProjection = Math.max(activeDays, 1);
+  const avgRevenue = kpi.totalRevenue / daysForProjection;
+  const avgSpend = kpi.totalSpend / daysForProjection;
+  const avgSales = kpi.totalSales / daysForProjection;
+  const platformFeeAbs = kpi.totalRevenue * (platformFeePct / 100);
+  const avgPlatformFee = platformFeeAbs / daysForProjection;
+  const avgProfit = avgRevenue - avgSpend - avgPlatformFee;
+
+  const proj30 = {
+    revenue: avgRevenue * 30,
+    spend: avgSpend * 30,
+    platformFee: avgPlatformFee * 30,
+    profit: avgProfit * 30,
+    sales: avgSales * 30
+  };
+
+  /* --- b) Gap analysis --- */
+  const currentMetric = targetType === 'lucro' ? proj30.profit : proj30.revenue;
+  const pctAchieved = targetValue > 0 ? Math.min(currentMetric / targetValue, 2) : 0;
+  const gap = targetValue - currentMetric;
+  const multiplier = currentMetric > 0 ? targetValue / currentMetric : Infinity;
+
+  /* --- c) Creative audit --- */
+  const creativesWithSpend = byCreative.filter(c => c.spend > 0);
+  const avgRoas = creativesWithSpend.reduce((s,c) => s + c.spend, 0) > 0
+    ? creativesWithSpend.reduce((s,c) => s + c.revenue, 0) / creativesWithSpend.reduce((s,c) => s + c.spend, 0)
+    : 0;
+
+  const tiers = { winners: [], mediocre: [], losers: [] };
+  creativesWithSpend.forEach(c => {
+    const roas = c.spend > 0 ? c.revenue / c.spend : 0;
+    const obj = { ...c, roas };
+    if (roas > avgRoas && c.revenue > 0) tiers.winners.push(obj);
+    else if (roas >= 0.5 && c.revenue > 0) tiers.mediocre.push(obj);
+    else tiers.losers.push(obj);
+  });
+  tiers.winners.sort((a,b) => b.roas - a.roas);
+  tiers.mediocre.sort((a,b) => b.roas - a.roas);
+  tiers.losers.sort((a,b) => b.spend - a.spend);
+
+  const wastedSpend = tiers.losers.reduce((s,c) => s + c.spend, 0);
+  const winnerAvgRoas = tiers.winners.reduce((s,c) => s + c.spend, 0) > 0
+    ? tiers.winners.reduce((s,c) => s + c.revenue, 0) / tiers.winners.reduce((s,c) => s + c.spend, 0)
+    : avgRoas;
+  const reallocRevenue = wastedSpend * winnerAvgRoas;
+  const reallocProfitImpact = (reallocRevenue - reallocRevenue * (platformFeePct/100)) + wastedSpend;
+  const wastedMonthly = (wastedSpend / daysForProjection) * 30;
+  const reallocMonthly = (reallocRevenue / daysForProjection) * 30;
+
+  /* --- d) Day-of-week analysis --- */
+  const DOW_NAMES = ['Dom','Seg','Ter','Qua','Qui','Sex','Sab'];
+  const dowStats = Array.from({length:7}, () => ({revenue:0, spend:0, sales:0, count:0}));
+  byDay.forEach(d => {
+    const dt = new Date(d.date + 'T12:00:00');
+    const dow = dt.getDay();
+    dowStats[dow].revenue += d.revenue;
+    dowStats[dow].spend += d.spend;
+    const daySales = (d.salesPrincipal||0) + (d.salesOB1||0) + (d.salesOB2||0) + (d.salesOther||0);
+    dowStats[dow].sales += daySales;
+    dowStats[dow].count++;
+  });
+  dowStats.forEach(d => {
+    d.avgRevenue = d.count > 0 ? d.revenue / d.count : 0;
+    d.avgSales = d.count > 0 ? d.sales / d.count : 0;
+  });
+
+  const bestDow = dowStats.reduce((best, d, i) => d.avgRevenue > (dowStats[best]?.avgRevenue || 0) ? i : best, 0);
+  const worstDow = dowStats.reduce((worst, d, i) => (d.count > 0 && d.avgRevenue < (dowStats[worst]?.avgRevenue || Infinity)) ? i : worst, 0);
+
+  /* --- e) Source analysis --- */
+  const organicRevenue = bySource.filter(s => s.source !== 'Meta_Ads').reduce((sum,s) => sum + s.revenue, 0);
+  const organicSales = bySource.filter(s => s.source !== 'Meta_Ads').reduce((sum,s) => sum + s.sales, 0);
+  const organicPct = kpi.totalRevenue > 0 ? organicRevenue / kpi.totalRevenue : 0;
+  const organicProfit = organicRevenue - organicRevenue * (platformFeePct/100);
+
+  /* --- f) Action plan --- */
+  const actions = [];
+
+  if (wastedSpend > 10) {
+    const loserNames = tiers.losers.map(c => c.name).slice(0,4).join(', ');
+    const monthlySave = wastedMonthly;
+    actions.push({
+      title: `Pausar criativos ineficientes`,
+      detail: `Pausar ${tiers.losers.length} criativo(s): ${loserNames}`,
+      impact: monthlySave,
+      type: 'save'
+    });
+  }
+
+  tiers.winners.slice(0,3).forEach(c => {
+    const currentMonthly = (c.spend / daysForProjection) * 30;
+    const scaleTarget = currentMonthly * 2.5;
+    const addedSpend = scaleTarget - currentMonthly;
+    const addedRevenue = addedSpend * c.roas;
+    const addedProfit = addedRevenue - addedRevenue*(platformFeePct/100) - addedSpend;
+    if (addedProfit > 0) {
+      actions.push({
+        title: `Escalar ${c.name}`,
+        detail: `Aumentar de ${fmtBRL(currentMonthly)}/mes para ${fmtBRL(scaleTarget)}/mes (ROAS ${c.roas.toFixed(2)})`,
+        impact: addedProfit,
+        type: 'add'
+      });
+    }
+  });
+
+  if (bestDow !== worstDow && dowStats[bestDow].avgRevenue > dowStats[worstDow].avgRevenue * 1.3) {
+    const shiftPct = 0.20;
+    const dailySpendAvg = kpi.totalSpend / daysForProjection;
+    const shiftAmount = dailySpendAvg * shiftPct;
+    const revGain = shiftAmount * (dowStats[bestDow].avgRevenue / (dowStats[bestDow].spend / Math.max(dowStats[bestDow].count,1) || 1));
+    const estMonthly = Math.abs(revGain - revGain*(platformFeePct/100)) * 4;
+    actions.push({
+      title: `Concentrar budget em ${DOW_NAMES[bestDow]}`,
+      detail: `Realocar 20% do budget de ${DOW_NAMES[worstDow]} para ${DOW_NAMES[bestDow]} (melhor dia: ${fmtBRL(dowStats[bestDow].avgRevenue)} medio/dia)`,
+      impact: estMonthly > 0 ? estMonthly : 100,
+      type: 'add'
+    });
+  }
+
+  if (gap > proj30.profit * 0.5) {
+    actions.push({
+      title: 'Testar aumento de preco ou novo Order Bump',
+      detail: `Gap de ${fmtBRL(gap)} exige alavancas estruturais: testar preco +30% ou adicionar upsell de ticket alto`,
+      impact: gap * 0.3,
+      type: 'test'
+    });
+  }
+
+  actions.sort((a,b) => b.impact - a.impact);
+
+  return {
+    targetType, targetValue, platformFeePct,
+    proj30, currentMetric, pctAchieved, gap, multiplier,
+    tiers, wastedSpend, wastedMonthly, winnerAvgRoas, reallocMonthly,
+    dowStats, bestDow, worstDow, DOW_NAMES,
+    organicRevenue, organicSales, organicPct, organicProfit,
+    actions, daysForProjection, avgRoas, kpi
+  };
+}
+
+function renderInsights(ins) {
+  const sec = $('insightsSection');
+  const targetLabel = ins.targetType === 'lucro' ? 'Lucro do Projeto' : 'Faturamento Bruto';
+  const pctNum = (ins.pctAchieved * 100);
+  const pctClamped = Math.min(pctNum, 100);
+  const progressColor = pctNum >= 100 ? 'var(--success)' : pctNum >= 60 ? 'var(--warning)' : 'var(--danger)';
+  const gapClass = ins.gap <= 0 ? 'up' : 'down';
+  const gapText = ins.gap <= 0 ? 'Meta atingida na projecao atual!' : `Faltam ${fmtBRL(ins.gap)} para a meta`;
+
+  let html = `<p class="section-title" style="display:flex;align-items:center;gap:8px;">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-04)" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+    Insights &amp; Escala — Meta: ${fmtBRL(ins.targetValue)} (${esc(targetLabel)})
+  </p>`;
+
+  /* Projection cards */
+  html += `<div class="ins-block"><div class="ins-block-title">Projecao Mensal (base: ${ins.daysForProjection} dias ativos)</div>
+  <div class="insights-grid">
+    <div class="insight-card"><div class="ic-label">Faturamento /mes</div><div class="ic-value">${fmtBRL(ins.proj30.revenue)}</div><div class="ic-sub">${fmtBRL(ins.proj30.revenue/30)}/dia</div></div>
+    <div class="insight-card"><div class="ic-label">Investimento /mes</div><div class="ic-value">${fmtBRL(ins.proj30.spend)}</div><div class="ic-sub">${fmtBRL(ins.proj30.spend/30)}/dia</div></div>
+    <div class="insight-card"><div class="ic-label">Taxa plataforma /mes</div><div class="ic-value">${fmtBRL(ins.proj30.platformFee)}</div><div class="ic-sub">${ins.platformFeePct.toFixed(1)}% do faturamento</div></div>
+    <div class="insight-card"><div class="ic-label">Lucro projetado /mes</div><div class="ic-value ${ins.proj30.profit >= 0 ? 'up' : 'down'}">${fmtBRL(ins.proj30.profit)}</div><div class="ic-sub">ROAS liq.: ${ins.kpi.totalSpend > 0 ? ((ins.kpi.totalRevenue - ins.kpi.totalRevenue*(ins.platformFeePct/100))/ins.kpi.totalSpend).toFixed(2) : '—'}</div></div>
+    <div class="insight-card"><div class="ic-label">Vendas /mes</div><div class="ic-value">${Math.round(ins.proj30.sales)}</div><div class="ic-sub">${(ins.proj30.sales/30).toFixed(1)}/dia</div></div>
+  </div></div>`;
+
+  /* Gap analysis */
+  html += `<div class="ins-block"><div class="ins-block-title">Gap Analysis — ${esc(targetLabel)}</div>
+  <div class="progress-label"><span>Projecao atual: ${fmtBRL(ins.currentMetric)}</span><span>Meta: ${fmtBRL(ins.targetValue)}</span></div>
+  <div class="progress-track"><div class="progress-fill" style="width:${pctClamped}%;background:${progressColor};">${pctNum.toFixed(0)}%</div></div>
+  <p style="font-size:13px;font-weight:600;" class="${gapClass}">${gapText}</p>
+  ${ins.gap > 0 ? `<p style="font-size:12px;color:var(--muted);margin-top:4px;">Multiplicador necessario: <strong>${ins.multiplier.toFixed(2)}x</strong> o resultado atual</p>` : ''}
+  </div>`;
+
+  /* Organic contribution */
+  html += `<div class="ins-block"><div class="ins-block-title">Contribuicao Organica</div>
+  <div class="insights-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));">
+    <div class="insight-card"><div class="ic-label">Revenue organico</div><div class="ic-value">${fmtBRL(ins.organicRevenue)}</div><div class="ic-sub">${(ins.organicPct*100).toFixed(1)}% do total</div></div>
+    <div class="insight-card"><div class="ic-label">Lucro organico /mes</div><div class="ic-value up">${fmtBRL((ins.organicProfit/ins.daysForProjection)*30)}</div><div class="ic-sub">Custo zero de aquisicao</div></div>
+    <div class="insight-card"><div class="ic-label">Vendas organicas</div><div class="ic-value">${ins.organicSales}</div><div class="ic-sub">${(ins.organicSales/ins.daysForProjection).toFixed(1)}/dia</div></div>
+  </div></div>`;
+
+  /* Creative audit */
+  html += `<div class="ins-block"><div class="ins-block-title">Auditoria de Criativos (ROAS medio: ${ins.avgRoas.toFixed(2)})</div>`;
+  if (ins.tiers.winners.length + ins.tiers.mediocre.length + ins.tiers.losers.length > 0) {
+    html += `<div class="overflow-x"><table style="font-size:12px;"><thead><tr><th>Criativo</th><th class="r">Invest.</th><th class="r">Revenue</th><th class="r">ROAS</th><th class="r">Vendas</th><th>Tier</th><th>Acao</th></tr></thead><tbody>`;
+    const renderRow = (c, tier, tierClass, action) =>
+      `<tr><td>${esc(c.name)}</td><td class="r">${fmtBRL(c.spend)}</td><td class="r">${fmtBRL(c.revenue)}</td><td class="r" style="color:${roasColor(c.roas)}">${c.roas.toFixed(2)}</td><td class="r">${c.sales}</td><td><span class="tier-tag ${tierClass}">${tier}</span></td><td style="font-size:11px;">${action}</td></tr>`;
+    ins.tiers.winners.forEach(c => { html += renderRow(c, 'Winner', 'tier-winner', 'Escalar 2-3x'); });
+    ins.tiers.mediocre.forEach(c => { html += renderRow(c, 'Otimizar', 'tier-mediocre', 'Testar variacao'); });
+    ins.tiers.losers.forEach(c => { html += renderRow(c, 'Pausar', 'tier-loser', 'Pausar ou recriar'); });
+    html += `</tbody></table></div>`;
+
+    if (ins.wastedSpend > 0) {
+      html += `<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:12px;">
+        <div style="font-size:12px;background:rgba(252,113,72,.08);padding:8px 14px;border-radius:8px;border:1px solid rgba(252,113,72,.2);">
+          Spend desperdicado: <strong style="color:var(--danger);">${fmtBRL(ins.wastedSpend)}</strong> no periodo (${fmtBRL(ins.wastedMonthly)}/mes)
+        </div>
+        <div style="font-size:12px;background:rgba(88,212,23,.08);padding:8px 14px;border-radius:8px;border:1px solid rgba(88,212,23,.2);">
+          Se realocar para winners (ROAS ${ins.winnerAvgRoas.toFixed(2)}): +${fmtBRL(ins.reallocMonthly)}/mes em receita
+        </div>
+      </div>`;
+    }
+  } else {
+    html += `<p style="font-size:12px;color:var(--muted);">Sem dados de criativos suficientes. Use metodo de match "nome" na configuracao.</p>`;
+  }
+  html += `</div>`;
+
+  /* Day-of-week heatmap */
+  html += `<div class="ins-block"><div class="ins-block-title">Padrao Semanal</div><div class="dow-grid">`;
+  const maxDowRev = Math.max(...ins.dowStats.map(d => d.avgRevenue), 1);
+  for (let i = 0; i < 7; i++) {
+    const d = ins.dowStats[i];
+    const intensity = d.avgRevenue / maxDowRev;
+    const bg = i === ins.bestDow ? 'rgba(88,212,23,.18)' : i === ins.worstDow ? 'rgba(252,113,72,.12)' : `rgba(23,150,212,${(intensity * 0.2).toFixed(2)})`;
+    const border = i === ins.bestDow ? 'var(--success)' : i === ins.worstDow ? 'var(--danger)' : 'var(--border)';
+    html += `<div class="dow-cell" style="background:${bg};border-color:${border};">
+      <div class="dow-day">${ins.DOW_NAMES[i]}</div>
+      <div class="dow-val">${fmtBRL(d.avgRevenue)}</div>
+      <div class="dow-sub">${d.avgSales.toFixed(1)} vendas/dia</div>
+    </div>`;
+  }
+  html += `</div>`;
+  html += `<p style="font-size:11px;color:var(--muted);">
+    Melhor dia: <strong style="color:var(--success);">${ins.DOW_NAMES[ins.bestDow]}</strong> (${fmtBRL(ins.dowStats[ins.bestDow].avgRevenue)}/dia) &nbsp;|&nbsp;
+    Pior dia: <strong style="color:var(--danger);">${ins.DOW_NAMES[ins.worstDow]}</strong> (${fmtBRL(ins.dowStats[ins.worstDow].avgRevenue)}/dia)
+  </p></div>`;
+
+  /* Action plan */
+  if (ins.actions.length > 0) {
+    html += `<div class="ins-block"><div class="ins-block-title">Plano de Acao (por impacto estimado no lucro mensal)</div>
+    <ol class="action-list">`;
+    ins.actions.forEach(a => {
+      const typeClass = a.type === 'save' ? 'impact-save' : a.type === 'add' ? 'impact-add' : 'impact-test';
+      const typeLabel = a.type === 'save' ? 'Economia' : a.type === 'add' ? 'Receita' : 'Potencial';
+      html += `<li class="action-item">
+        <div class="action-body"><strong>${esc(a.title)}</strong><span>${esc(a.detail)}</span></div>
+        <div class="action-impact ${typeClass}">${typeLabel}: +${fmtBRL(a.impact)}/mes</div>
+      </li>`;
+    });
+    html += `</ol></div>`;
+  }
+
+  sec.innerHTML = html;
+  sec.style.display = '';
+  sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 function renderFooter(cfg) {
   const now = new Date().toLocaleString('pt-BR');
   $('footerText').innerHTML = `Tracking HighEnd — Dashboard Perpetuo — Cliente: ${esc(cfg.clientName)}<br/>Fontes: Google Sheets (${esc(cfg.vendasSheet)} + ${esc(cfg.metaSheet)}) — Atualizado em ${now}`;
@@ -1018,12 +1365,14 @@ async function loadAndRender() {
     $('dashboardContent').style.display = '';
     $('emptyState').style.display = 'none';
     $('filterBar').style.display = '';
+    $('insightsBar').style.display = '';
     $('configPanel').classList.remove('open');
 
     showStatus(`Dados carregados com sucesso.`, 'ok');
 
     window._rawVendas = rawVendas;
     window._rawMeta = rawMeta;
+    window._lastFinalData = finalData;
   } catch (err) {
     showStatus('Erro: ' + err.message, 'err');
     console.error(err);
@@ -1053,6 +1402,10 @@ async function refresh() {
   const period = cfg.dateFrom || finalData.byDay[0]?.date || '?';
   const periodEnd = cfg.dateTo || finalData.byDay[finalData.byDay.length - 1]?.date || '?';
   $('headerMeta').innerHTML = `Periodo: ${period} a ${periodEnd} · ${fmtNum(finalData.vendas.length)} vendas filtradas · Atualizado: ${new Date().toLocaleString('pt-BR')}`;
+  window._lastFinalData = finalData;
+  if ($('insightsSection').style.display !== 'none') {
+    renderInsights(generateInsights(finalData, cfg));
+  }
   showStatus('Filtros aplicados.', 'ok');
 }
 
@@ -1137,6 +1490,22 @@ document.addEventListener('DOMContentLoaded', () => {
     clearQuickActive();
     $('cfgDateTo').value = $('filterDateTo').value;
     refresh();
+  });
+
+  /* Insights bar */
+  $('btnGenerateInsights').addEventListener('click', () => {
+    if (!window._lastFinalData) return;
+    const cfg = readConfigFromUI();
+    saveConfig(cfg);
+    const ins = generateInsights(window._lastFinalData, cfg);
+    renderInsights(ins);
+  });
+
+  ['insightsTargetType','insightsTargetValue','insightsPlatformFee'].forEach(id => {
+    $(id).addEventListener('change', () => {
+      const cfg = readConfigFromUI();
+      saveConfig(cfg);
+    });
   });
 
   if (cfg.apiKey) {
