@@ -1,8 +1,8 @@
 {
-  "name": "Dashboard Perpetuo — Tracking HighEnd",
+  "name": "Dashboard Perpetuo - Tracking HighEnd",
   "short_name": "THE Dashboard",
   "description": "Dashboard de funil perpetuo com dados do Google Sheets",
-  "start_url": "./",
+  "start_url": "./dashboard-perpetuo.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#0F172A",
