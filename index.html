@@ -245,13 +245,10 @@
     <label>Meta:</label>
     <select id="insightsTargetType" style="min-width:150px;">
       <option value="lucro">Lucro do projeto</option>
-      <option value="faturamento">Faturamento bruto</option>
+      <option value="faturamento">Faturamento liquido</option>
     </select>
     <label>R$</label>
     <input type="text" id="insightsTargetValue" value="10000" style="min-width:90px;max-width:120px;" />
-    <div class="filter-sep"></div>
-    <label>Taxa plataforma %</label>
-    <input type="text" id="insightsPlatformFee" value="12.8" style="min-width:60px;max-width:80px;" />
     <div class="filter-sep"></div>
     <button class="primary" id="btnGenerateInsights">Gerar Insights</button>
   </div>
@@ -501,8 +498,7 @@ function getConfig() {
     sources: saved.sources || ['Meta_Ads','bio','manychat','hubla'],
     statusFilter: saved.statusFilter || 'paid',
     insightsTargetType: saved.insightsTargetType || 'lucro',
-    insightsTargetValue: saved.insightsTargetValue || '10000',
-    insightsPlatformFee: saved.insightsPlatformFee || '12.8'
+    insightsTargetValue: saved.insightsTargetValue || '10000'
   };
 }
 
@@ -524,7 +520,6 @@ function populateConfigUI(cfg) {
   toggleNameFields();
   $('insightsTargetType').value = cfg.insightsTargetType || 'lucro';
   $('insightsTargetValue').value = cfg.insightsTargetValue || '10000';
-  $('insightsPlatformFee').value = cfg.insightsPlatformFee || '12.8';
 }
 
 function readConfigFromUI() {
@@ -547,8 +542,7 @@ function readConfigFromUI() {
     sources,
     statusFilter: $('cfgStatus').value,
     insightsTargetType: $('insightsTargetType').value,
-    insightsTargetValue: $('insightsTargetValue').value,
-    insightsPlatformFee: $('insightsPlatformFee').value
+    insightsTargetValue: $('insightsTargetValue').value
   };
 }
 
@@ -643,13 +637,19 @@ function findNumericCampaignId(venda) {
 }
 
 function processData(rawVendas, rawMeta, cfg) {
-  let vendas = rawVendas.map(v => ({
-    ...v,
-    _price: parseNum(v.payment_price),
-    _date: parseDate(v.approved_date || v.order_date),
-    _source: String(v.utm_source || '').trim(),
-    _status: String(v.status || v.src || '').toLowerCase().trim()
-  }));
+  let vendas = rawVendas.map(v => {
+    const price = parseNum(v.payment_price);
+    const platFee = parseNum(v.commission_plataform);
+    return {
+      ...v,
+      _price: price,
+      _platformFee: platFee,
+      _netPrice: price - platFee,
+      _date: parseDate(v.approved_date || v.order_date),
+      _source: String(v.utm_source || '').trim(),
+      _status: String(v.status || v.src || '').toLowerCase().trim()
+    };
+  });
 
   /* Handle Hubla column-shift: detect status in non-standard columns.
      Pipes in utm_medium cause downstream columns to shift, so "paid"/"refunded"
@@ -695,7 +695,8 @@ function processData(rawVendas, rawMeta, cfg) {
   const offerNames = [...new Set(vendas.map(v => String(v.offer_name || v.product_name || '').trim()).filter(Boolean))];
 
   const totalSpend = meta.reduce((s, m) => s + m._spend, 0);
-  const totalRevenue = vendas.reduce((s, v) => s + v._price, 0);
+  const totalRevenue = vendas.reduce((s, v) => s + v._netPrice, 0);
+  const totalPlatformFee = vendas.reduce((s, v) => s + v._platformFee, 0);
   const totalSales = vendas.length;
   const roas = totalSpend > 0 ? totalRevenue / totalSpend : null;
   const profit = totalRevenue - totalSpend;
@@ -708,7 +709,7 @@ function processData(rawVendas, rawMeta, cfg) {
     const cat = offerMap[name] || 'Produto Principal';
     if (!categorized[cat]) categorized[cat] = { sales: 0, revenue: 0 };
     categorized[cat].sales++;
-    categorized[cat].revenue += v._price;
+    categorized[cat].revenue += v._netPrice;
   });
 
   const principalSales = categorized['Produto Principal']?.sales || 0;
@@ -725,7 +726,9 @@ function processData(rawVendas, rawMeta, cfg) {
   }).length;
   const cpaPrincipal = principalSales > 0 ? totalSpend / principalSales : 0;
   const cpaPrincipalMeta = principalSalesMetaAds > 0 ? totalSpend / principalSalesMetaAds : 0;
-  const ticketMedio = totalSales > 0 ? totalRevenue / totalSales : 0;
+  const ticketMedio = principalSales > 0 ? totalRevenue / principalSales : 0;
+  const salesMetaAds = vendas.filter(v => v._source === 'Meta_Ads').length;
+  const salesOrganic = vendas.filter(v => v._source !== 'Meta_Ads').length;
 
   const byDay = groupByDay(vendas, meta);
   const byCampaign = groupByCampaign(vendas, meta, cfg);
@@ -735,7 +738,7 @@ function processData(rawVendas, rawMeta, cfg) {
 
   return {
     vendas, meta, offerNames,
-    kpi: { totalRevenue, totalSpend, roas, profit, totalSales, principalSales, ob1Sales, ob2Sales, takeRateOB1, takeRateOB2, cacGeral, cpaPrincipal, cpaPrincipalMeta, principalSalesMetaAds, ticketMedio },
+    kpi: { totalRevenue, totalSpend, totalPlatformFee, roas, profit, totalSales, principalSales, ob1Sales, ob2Sales, takeRateOB1, takeRateOB2, cacGeral, cpaPrincipal, cpaPrincipalMeta, principalSalesMetaAds, ticketMedio, salesMetaAds, salesOrganic },
     categorized, byDay, byCampaign, byCreative, bySource, byOffer
   };
 }
@@ -745,7 +748,7 @@ function groupByDay(vendas, meta) {
   vendas.forEach(v => {
     const d = v._date; if (!d) return;
     if (!days[d]) days[d] = { revenue: 0, spend: 0, salesPrincipal: 0, salesOB1: 0, salesOB2: 0, salesOther: 0 };
-    days[d].revenue += v._price;
+    days[d].revenue += v._netPrice;
   });
   meta.forEach(m => {
     const d = m._date; if (!d) return;
@@ -771,7 +774,7 @@ function groupByCampaign(vendas, meta, cfg) {
       const vid = findNumericCampaignId(v);
       if (!vid) return;
       for (const c of Object.values(campaigns)) {
-        if (c.cid === vid) { c.sales++; c.revenue += v._price; break; }
+        if (c.cid === vid) { c.sales++; c.revenue += v._netPrice; break; }
       }
     });
   } else {
@@ -782,7 +785,7 @@ function groupByCampaign(vendas, meta, cfg) {
       if (!utmVal) return;
       for (const c of Object.values(campaigns)) {
         if (c.name.toLowerCase().includes(utmVal) || utmVal.includes(c.name.toLowerCase())) {
-          c.sales++; c.revenue += v._price; break;
+          c.sales++; c.revenue += v._netPrice; break;
         }
       }
     });
@@ -807,7 +810,7 @@ function groupByCreative(vendas, meta, cfg) {
       if (!utmVal) return;
       for (const a of Object.values(ads)) {
         if (a.name.toLowerCase().includes(utmVal) || utmVal.includes(a.name.toLowerCase())) {
-          a.sales++; a.revenue += v._price; break;
+          a.sales++; a.revenue += v._netPrice; break;
         }
       }
     });
@@ -821,7 +824,7 @@ function groupBySource(vendas) {
     const s = v._source || 'desconhecido';
     if (!sources[s]) sources[s] = { source: s, sales: 0, revenue: 0 };
     sources[s].sales++;
-    sources[s].revenue += v._price;
+    sources[s].revenue += v._netPrice;
   });
   return Object.values(sources).sort((a, b) => b.revenue - a.revenue);
 }
@@ -833,7 +836,7 @@ function groupByOffer(vendas, offerMap) {
     const cat = offerMap[name] || 'Produto Principal';
     if (!offers[name]) offers[name] = { name, category: cat, sales: 0, revenue: 0 };
     offers[name].sales++;
-    offers[name].revenue += v._price;
+    offers[name].revenue += v._netPrice;
   });
   return Object.values(offers).sort((a, b) => b.revenue - a.revenue);
 }
@@ -864,7 +867,7 @@ function renderKPIs(kpi) {
   const roasClr = roasColor(kpi.roas);
 
   $('kpiGrid4').innerHTML = `
-    <article class="card"><div class="kpi-label">Faturamento do periodo</div><div class="kpi-value">${fmtBRL(kpi.totalRevenue)}</div><div class="delta">${fmtNum(kpi.totalSales)} vendas totais</div></article>
+    <article class="card"><div class="kpi-label">Faturamento liquido</div><div class="kpi-value">${fmtBRL(kpi.totalRevenue)}</div><div class="delta">${fmtNum(kpi.totalSales)} vendas · Taxa plat.: ${fmtBRL(kpi.totalPlatformFee)}</div></article>
     <article class="card"><div class="kpi-label">Investimento do periodo</div><div class="kpi-value">${fmtBRL(kpi.totalSpend)}</div><div class="delta">Meta Ads</div></article>
     <article class="card"><div class="kpi-label">ROAS</div><div class="kpi-value" style="color:${roasClr}">${kpi.roas != null ? kpi.roas.toFixed(2) : '—'}</div><div class="delta">Faturamento / Investimento</div></article>
     <article class="card"><div class="kpi-label">Lucro</div><div class="kpi-value ${profitClass}">${fmtBRL(kpi.profit)}</div><div class="delta ${profitClass}">${kpi.profit >= 0 ? 'Positivo' : 'Negativo'}</div></article>
@@ -873,11 +876,13 @@ function renderKPIs(kpi) {
 
   $('kpiGrid6').innerHTML = `
     <article class="card"><div class="kpi-label">Vendas Principal</div><div class="kpi-value kpi-sm">${fmtNum(kpi.principalSales)}</div><div class="delta">Produto principal</div></article>
+    <article class="card"><div class="kpi-label">Vendas Meta Ads</div><div class="kpi-value kpi-sm">${fmtNum(kpi.salesMetaAds)}</div><div class="delta">Trafego pago</div></article>
+    <article class="card"><div class="kpi-label">Vendas Organico</div><div class="kpi-value kpi-sm">${fmtNum(kpi.salesOrganic)}</div><div class="delta">Bio + outros</div></article>
     <article class="card"><div class="kpi-label">Vendas OB1</div><div class="kpi-value kpi-sm">${fmtNum(kpi.ob1Sales)}</div><div class="delta">Order Bump 1</div></article>
     <article class="card"><div class="kpi-label">Vendas OB2</div><div class="kpi-value kpi-sm">${fmtNum(kpi.ob2Sales)}</div><div class="delta">Order Bump 2</div></article>
     <article class="card"><div class="kpi-label">Take rate OB1</div><div class="kpi-value kpi-sm">${fmtPct(kpi.takeRateOB1)}</div><div class="delta">OB1 / Principal</div></article>
     <article class="card"><div class="kpi-label">Take rate OB2</div><div class="kpi-value kpi-sm">${fmtPct(kpi.takeRateOB2)}</div><div class="delta">OB2 / Principal</div></article>
-    <article class="card"><div class="kpi-label">Ticket Medio</div><div class="kpi-value kpi-sm">${fmtBRL(kpi.ticketMedio)}</div><div class="delta">Fat. / ${fmtNum(kpi.totalSales)} vendas</div></article>
+    <article class="card"><div class="kpi-label">Ticket Medio</div><div class="kpi-value kpi-sm">${fmtBRL(kpi.ticketMedio)}</div><div class="delta">Fat. / ${fmtNum(kpi.principalSales)} vendas princ.</div></article>
     <article class="card"><div class="kpi-label">CAC geral</div><div class="kpi-value kpi-sm">${fmtBRL(kpi.cacGeral)}</div><div class="delta">Invest / vendas totais</div></article>
     <article class="card"><div class="kpi-label">CPA Principal</div><div class="kpi-value kpi-sm">${fmtBRL(kpi.cpaPrincipal)}</div><div class="delta">Invest / ${fmtNum(kpi.principalSales)} vendas princ.</div></article>
     <article class="card"><div class="kpi-label">CPA Princ. Meta Ads</div><div class="kpi-value kpi-sm">${fmtBRL(kpi.cpaPrincipalMeta)}</div><div class="delta">Invest / ${fmtNum(kpi.principalSalesMetaAds)} vendas Meta</div></article>
@@ -1030,14 +1035,14 @@ function renderSplit(kpi, byCampaign, bySource) {
 function generateInsights(finalData, cfg) {
   const targetType = $('insightsTargetType').value;
   const targetValue = parseFloat(String($('insightsTargetValue').value).replace(/\./g,'').replace(',','.')) || 10000;
-  const platformFeePct = parseFloat(String($('insightsPlatformFee').value).replace(',','.')) || 12.8;
 
   const kpi = finalData.kpi;
   const byDay = finalData.byDay;
   const byCreative = finalData.byCreative;
   const bySource = finalData.bySource;
   const vendas = finalData.vendas;
-  const meta = finalData.meta;
+
+  const totalPlatformFee = kpi.totalPlatformFee || 0;
 
   /* --- a) Projection engine --- */
   const activeDays = byDay.filter(d => d.revenue > 0 || d.spend > 0).length;
@@ -1045,9 +1050,8 @@ function generateInsights(finalData, cfg) {
   const avgRevenue = kpi.totalRevenue / daysForProjection;
   const avgSpend = kpi.totalSpend / daysForProjection;
   const avgSales = kpi.totalSales / daysForProjection;
-  const platformFeeAbs = kpi.totalRevenue * (platformFeePct / 100);
-  const avgPlatformFee = platformFeeAbs / daysForProjection;
-  const avgProfit = avgRevenue - avgSpend - avgPlatformFee;
+  const avgPlatformFee = totalPlatformFee / daysForProjection;
+  const avgProfit = avgRevenue - avgSpend;
 
   const proj30 = {
     revenue: avgRevenue * 30,
@@ -1086,7 +1090,6 @@ function generateInsights(finalData, cfg) {
     ? tiers.winners.reduce((s,c) => s + c.revenue, 0) / tiers.winners.reduce((s,c) => s + c.spend, 0)
     : avgRoas;
   const reallocRevenue = wastedSpend * winnerAvgRoas;
-  const reallocProfitImpact = (reallocRevenue - reallocRevenue * (platformFeePct/100)) + wastedSpend;
   const wastedMonthly = (wastedSpend / daysForProjection) * 30;
   const reallocMonthly = (reallocRevenue / daysForProjection) * 30;
 
@@ -1114,7 +1117,7 @@ function generateInsights(finalData, cfg) {
   const organicRevenue = bySource.filter(s => s.source !== 'Meta_Ads').reduce((sum,s) => sum + s.revenue, 0);
   const organicSales = bySource.filter(s => s.source !== 'Meta_Ads').reduce((sum,s) => sum + s.sales, 0);
   const organicPct = kpi.totalRevenue > 0 ? organicRevenue / kpi.totalRevenue : 0;
-  const organicProfit = organicRevenue - organicRevenue * (platformFeePct/100);
+  const organicProfit = organicRevenue;
 
   /* --- f) Action plan --- */
   const actions = [];
@@ -1135,7 +1138,7 @@ function generateInsights(finalData, cfg) {
     const scaleTarget = currentMonthly * 2.5;
     const addedSpend = scaleTarget - currentMonthly;
     const addedRevenue = addedSpend * c.roas;
-    const addedProfit = addedRevenue - addedRevenue*(platformFeePct/100) - addedSpend;
+    const addedProfit = addedRevenue - addedSpend;
     if (addedProfit > 0) {
       actions.push({
         title: `Escalar ${c.name}`,
@@ -1151,7 +1154,7 @@ function generateInsights(finalData, cfg) {
     const dailySpendAvg = kpi.totalSpend / daysForProjection;
     const shiftAmount = dailySpendAvg * shiftPct;
     const revGain = shiftAmount * (dowStats[bestDow].avgRevenue / (dowStats[bestDow].spend / Math.max(dowStats[bestDow].count,1) || 1));
-    const estMonthly = Math.abs(revGain - revGain*(platformFeePct/100)) * 4;
+    const estMonthly = Math.abs(revGain) * 4;
     actions.push({
       title: `Concentrar budget em ${DOW_NAMES[bestDow]}`,
       detail: `Realocar 20% do budget de ${DOW_NAMES[worstDow]} para ${DOW_NAMES[bestDow]} (melhor dia: ${fmtBRL(dowStats[bestDow].avgRevenue)} medio/dia)`,
@@ -1172,7 +1175,7 @@ function generateInsights(finalData, cfg) {
   actions.sort((a,b) => b.impact - a.impact);
 
   return {
-    targetType, targetValue, platformFeePct,
+    targetType, targetValue, totalPlatformFee,
     proj30, currentMetric, pctAchieved, gap, multiplier,
     tiers, wastedSpend, wastedMonthly, winnerAvgRoas, reallocMonthly,
     dowStats, bestDow, worstDow, DOW_NAMES,
@@ -1183,7 +1186,7 @@ function generateInsights(finalData, cfg) {
 
 function renderInsights(ins) {
   const sec = $('insightsSection');
-  const targetLabel = ins.targetType === 'lucro' ? 'Lucro do Projeto' : 'Faturamento Bruto';
+  const targetLabel = ins.targetType === 'lucro' ? 'Lucro do Projeto' : 'Faturamento Liquido';
   const pctNum = (ins.pctAchieved * 100);
   const pctClamped = Math.min(pctNum, 100);
   const progressColor = pctNum >= 100 ? 'var(--success)' : pctNum >= 60 ? 'var(--warning)' : 'var(--danger)';
@@ -1198,10 +1201,10 @@ function renderInsights(ins) {
   /* Projection cards */
   html += `<div class="ins-block"><div class="ins-block-title">Projecao Mensal (base: ${ins.daysForProjection} dias ativos)</div>
   <div class="insights-grid">
-    <div class="insight-card"><div class="ic-label">Faturamento /mes</div><div class="ic-value">${fmtBRL(ins.proj30.revenue)}</div><div class="ic-sub">${fmtBRL(ins.proj30.revenue/30)}/dia</div></div>
+    <div class="insight-card"><div class="ic-label">Faturamento liq. /mes</div><div class="ic-value">${fmtBRL(ins.proj30.revenue)}</div><div class="ic-sub">${fmtBRL(ins.proj30.revenue/30)}/dia</div></div>
     <div class="insight-card"><div class="ic-label">Investimento /mes</div><div class="ic-value">${fmtBRL(ins.proj30.spend)}</div><div class="ic-sub">${fmtBRL(ins.proj30.spend/30)}/dia</div></div>
-    <div class="insight-card"><div class="ic-label">Taxa plataforma /mes</div><div class="ic-value">${fmtBRL(ins.proj30.platformFee)}</div><div class="ic-sub">${ins.platformFeePct.toFixed(1)}% do faturamento</div></div>
-    <div class="insight-card"><div class="ic-label">Lucro projetado /mes</div><div class="ic-value ${ins.proj30.profit >= 0 ? 'up' : 'down'}">${fmtBRL(ins.proj30.profit)}</div><div class="ic-sub">ROAS liq.: ${ins.kpi.totalSpend > 0 ? ((ins.kpi.totalRevenue - ins.kpi.totalRevenue*(ins.platformFeePct/100))/ins.kpi.totalSpend).toFixed(2) : '—'}</div></div>
+    <div class="insight-card"><div class="ic-label">Taxa plataforma /mes</div><div class="ic-value">${fmtBRL(ins.proj30.platformFee)}</div><div class="ic-sub">Deduzida do faturamento</div></div>
+    <div class="insight-card"><div class="ic-label">Lucro projetado /mes</div><div class="ic-value ${ins.proj30.profit >= 0 ? 'up' : 'down'}">${fmtBRL(ins.proj30.profit)}</div><div class="ic-sub">ROAS: ${ins.kpi.totalSpend > 0 ? (ins.kpi.totalRevenue/ins.kpi.totalSpend).toFixed(2) : '—'}</div></div>
     <div class="insight-card"><div class="ic-label">Vendas /mes</div><div class="ic-value">${Math.round(ins.proj30.sales)}</div><div class="ic-sub">${(ins.proj30.sales/30).toFixed(1)}/dia</div></div>
   </div></div>`;
 
@@ -1501,7 +1504,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderInsights(ins);
   });
 
-  ['insightsTargetType','insightsTargetValue','insightsPlatformFee'].forEach(id => {
+  ['insightsTargetType','insightsTargetValue'].forEach(id => {
     $(id).addEventListener('change', () => {
       const cfg = readConfigFromUI();
       saveConfig(cfg);
