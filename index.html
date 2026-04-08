@@ -403,15 +403,6 @@
             <input type="date" id="cfgDateTo" />
           </div>
           <div class="config-field">
-            <label>Fontes</label>
-            <select id="cfgSources" multiple style="min-height:80px;">
-              <option value="Meta_Ads" selected>Meta_Ads</option>
-              <option value="bio" selected>bio</option>
-              <option value="manychat" selected>manychat</option>
-              <option value="hubla" selected>hubla</option>
-            </select>
-          </div>
-          <div class="config-field">
             <label>Status vendas</label>
             <select id="cfgStatus">
               <option value="paid">Apenas paid</option>
@@ -649,7 +640,6 @@ function getConfig() {
     offerMap: saved.offerMap || { ...DEFAULT_OFFER_MAP },
     dateFrom: saved.dateFrom || '',
     dateTo: saved.dateTo || '',
-    sources: saved.sources || ['Meta_Ads','bio','manychat','hubla'],
     statusFilter: saved.statusFilter || 'paid',
     insightsTargetType: saved.insightsTargetType || 'lucro',
     insightsTargetValue: saved.insightsTargetValue || '10000'
@@ -669,17 +659,12 @@ function populateConfigUI(cfg) {
   $('cfgDateFrom').value = cfg.dateFrom;
   $('cfgDateTo').value = cfg.dateTo;
   $('cfgStatus').value = cfg.statusFilter;
-  const srcSel = $('cfgSources');
-  for (const opt of srcSel.options) opt.selected = cfg.sources.includes(opt.value);
   toggleNameFields();
   $('insightsTargetType').value = cfg.insightsTargetType || 'lucro';
   $('insightsTargetValue').value = cfg.insightsTargetValue || '10000';
 }
 
 function readConfigFromUI() {
-  const srcSel = $('cfgSources');
-  const sources = [];
-  for (const opt of srcSel.options) if (opt.selected) sources.push(opt.value);
   return {
     apiKey: $('cfgApiKey').value.trim(),
     sheetId: $('cfgSheetId').value.trim(),
@@ -693,7 +678,6 @@ function readConfigFromUI() {
     offerMap: readOfferMap(),
     dateFrom: $('cfgDateFrom').value,
     dateTo: $('cfgDateTo').value,
-    sources,
     statusFilter: $('cfgStatus').value,
     insightsTargetType: $('insightsTargetType').value,
     insightsTargetValue: $('insightsTargetValue').value
@@ -826,9 +810,6 @@ function processData(rawVendas, rawMeta, cfg) {
 
   if (cfg.dateFrom) vendas = vendas.filter(v => !v._date || v._date >= cfg.dateFrom);
   if (cfg.dateTo) vendas = vendas.filter(v => !v._date || v._date <= cfg.dateTo);
-  if (cfg.sources && cfg.sources.length > 0) {
-    vendas = vendas.filter(v => cfg.sources.includes(v._source) || v._source === 'desconhecido');
-  }
 
   let meta = rawMeta.map(m => ({
     ...m,
