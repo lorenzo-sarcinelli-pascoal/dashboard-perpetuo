@@ -202,6 +202,9 @@
     .insight2 { margin: 0 0 14px; font-size: 12px; color: var(--muted); }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); padding: 9px 10px; border-bottom: 1px solid var(--border); font-weight: 700; }
+    th .th-stack { display: flex; flex-direction: column; align-items: inherit; gap: 2px; line-height: 1.25; }
+    th.r .th-stack { align-items: flex-end; }
+    th .th-sub { font-size: 9px; font-weight: 600; color: var(--muted); text-transform: none; letter-spacing: 0; white-space: normal; max-width: 8.5rem; }
     td { padding: 9px 10px; border-bottom: 1px solid rgba(34,36,51,.7); }
     td.r, th.r { text-align: right; }
     tr.total td { font-weight: 700; border-top: 1px solid var(--border); }
@@ -543,6 +546,14 @@
       <div class="overflow-x"><table id="tableCampaign"><thead></thead><tbody></tbody></table></div>
     </section>
 
+    <!-- Performance por conjunto (ad set) -->
+    <section class="section" id="sectionAdset">
+      <p class="section-title">Performance por conjunto</p>
+      <p class="insight2" style="margin-top:-4px;">Planilha Meta com coluna <code style="font-size:11px;">adset_name</code>; vendas Meta Ads casadas pelo UTM de conjunto (config).</p>
+      <p class="insight1" id="adsetInsight"></p>
+      <div class="overflow-x"><table id="tableAdset"><thead></thead><tbody></tbody></table></div>
+    </section>
+
     <!-- Top Criativos -->
     <section class="section" id="sectionCreative">
       <p class="section-title">Top criativos</p>
@@ -829,7 +840,8 @@ function processData(rawVendas, rawMeta, cfg) {
     _leads: parseNum(m.lead),
     _ic: parseNum(m.initiate_checkout),
     _purchases: parseNum(m.purchase),
-    _cid: String(m.campaign_id || '').trim()
+    _cid: String(m.campaign_id || '').trim(),
+    _adsetName: String(m.adset_name || m.ad_set_name || '').trim()
   }));
 
   if (cfg.dateFrom) meta = meta.filter(m => !m._date || m._date >= cfg.dateFrom);
@@ -887,6 +899,7 @@ function processData(rawVendas, rawMeta, cfg) {
 
   const byDay = groupByDay(vendas, meta);
   const byCampaign = groupByCampaign(vendas, meta, cfg);
+  const byAdset = groupByAdset(vendas, meta, cfg);
   const byCreative = groupByCreative(vendas, meta, cfg);
   const bySource = groupBySource(vendas);
   const byOffer = groupByOffer(vendas, offerMap);
@@ -897,8 +910,18 @@ function processData(rawVendas, rawMeta, cfg) {
       totalRevenue, totalSpend, totalPlatformFee, roas, profit, totalSales, principalSales, ob1Sales, ob2Sales, takeRateOB1, takeRateOB2, cacGeral, cpaPrincipal, cpaPrincipalMeta, principalSalesMetaAds, ticketMedio, salesMetaAds, salesOrganic,
       totalImpressions, totalClicks, totalLpv, totalIc, ctr, connectRate, icPerLpv, convPageMeta, convPageTotal, convCheckoutMeta, convCheckoutTotal
     },
-    categorized, byDay, byCampaign, byCreative, bySource, byOffer
+    categorized, byDay, byCampaign, byAdset, byCreative, bySource, byOffer
   };
+}
+
+function attribMetaRowFromVenda(row, v, offerMap) {
+  row.sales = (row.sales || 0) + 1;
+  row.revenue = (row.revenue || 0) + v._netPrice;
+  const on = String(v.offer_name || v.product_name || '').trim();
+  const cat = offerMap[on] || 'Produto Principal';
+  if (cat === 'Produto Principal') row.salesPrincipal = (row.salesPrincipal || 0) + 1;
+  else if (cat === 'Order Bump 1') row.salesOB1 = (row.salesOB1 || 0) + 1;
+  else if (cat === 'Order Bump 2') row.salesOB2 = (row.salesOB2 || 0) + 1;
 }
 
 function emptyDayRow() {
@@ -928,10 +951,16 @@ function groupByDay(vendas, meta) {
 }
 
 function groupByCampaign(vendas, meta, cfg) {
+  const offerMap = cfg.offerMap || {};
   const campaigns = {};
   meta.forEach(m => {
     const name = String(m.campaign_name || '').trim() || `CID:${m._cid}`;
-    if (!campaigns[name]) campaigns[name] = { name, spend: 0, impressions: 0, clicks: 0, sales: 0, revenue: 0, cid: m._cid };
+    if (!campaigns[name]) {
+      campaigns[name] = {
+        name, spend: 0, impressions: 0, clicks: 0, sales: 0, revenue: 0,
+        salesPrincipal: 0, salesOB1: 0, salesOB2: 0, cid: m._cid
+      };
+    }
     campaigns[name].spend += m._spend;
     campaigns[name].impressions += m._impressions;
     campaigns[name].clicks += m._clicks;
@@ -943,7 +972,7 @@ function groupByCampaign(vendas, meta, cfg) {
       const vid = findNumericCampaignId(v);
       if (!vid) return;
       for (const c of Object.values(campaigns)) {
-        if (c.cid === vid) { c.sales++; c.revenue += v._netPrice; break; }
+        if (c.cid === vid) { attribMetaRowFromVenda(c, v, offerMap); break; }
       }
     });
   } else {
@@ -954,7 +983,8 @@ function groupByCampaign(vendas, meta, cfg) {
       if (!utmVal) return;
       for (const c of Object.values(campaigns)) {
         if (c.name.toLowerCase().includes(utmVal) || utmVal.includes(c.name.toLowerCase())) {
-          c.sales++; c.revenue += v._netPrice; break;
+          attribMetaRowFromVenda(c, v, offerMap);
+          break;
         }
       }
     });
@@ -962,12 +992,50 @@ function groupByCampaign(vendas, meta, cfg) {
   return Object.values(campaigns).sort((a, b) => b.spend - a.spend);
 }
 
+function groupByAdset(vendas, meta, cfg) {
+  const offerMap = cfg.offerMap || {};
+  const sets = {};
+  meta.forEach(m => {
+    const name = m._adsetName || String(m.adset_name || m.ad_set_name || '').trim();
+    if (!name) return;
+    if (!sets[name]) {
+      sets[name] = {
+        name, spend: 0, impressions: 0, clicks: 0, sales: 0, revenue: 0,
+        salesPrincipal: 0, salesOB1: 0, salesOB2: 0
+      };
+    }
+    sets[name].spend += m._spend;
+    sets[name].impressions += m._impressions;
+    sets[name].clicks += m._clicks;
+  });
+
+  const utmCol = cfg.utmAdset || 'utm_medium';
+  vendas.forEach(v => {
+    if (v._source !== 'Meta_Ads') return;
+    const utmVal = String(v[utmCol] || '').trim().toLowerCase();
+    if (!utmVal) return;
+    for (const s of Object.values(sets)) {
+      if (s.name.toLowerCase().includes(utmVal) || utmVal.includes(s.name.toLowerCase())) {
+        attribMetaRowFromVenda(s, v, offerMap);
+        break;
+      }
+    }
+  });
+  return Object.values(sets).sort((a, b) => b.spend - a.spend);
+}
+
 function groupByCreative(vendas, meta, cfg) {
+  const offerMap = cfg.offerMap || {};
   const ads = {};
   meta.forEach(m => {
     const name = String(m.ad_name || '').trim();
     if (!name) return;
-    if (!ads[name]) ads[name] = { name, spend: 0, sales: 0, revenue: 0 };
+    if (!ads[name]) {
+      ads[name] = {
+        name, spend: 0, sales: 0, revenue: 0,
+        salesPrincipal: 0, salesOB1: 0, salesOB2: 0
+      };
+    }
     ads[name].spend += m._spend;
   });
 
@@ -979,7 +1047,8 @@ function groupByCreative(vendas, meta, cfg) {
       if (!utmVal) return;
       for (const a of Object.values(ads)) {
         if (a.name.toLowerCase().includes(utmVal) || utmVal.includes(a.name.toLowerCase())) {
-          a.sales++; a.revenue += v._netPrice; break;
+          attribMetaRowFromVenda(a, v, offerMap);
+          break;
         }
       }
     });
@@ -1358,35 +1427,90 @@ function renderTableOffer(byOffer, kpi) {
 }
 
 function renderTableCampaign(byCampaign) {
-  const totalSpend = byCampaign.reduce((s, c) => s + c.spend, 0);
-  const totalSales = byCampaign.reduce((s, c) => s + c.sales, 0);
-  const totalRev = byCampaign.reduce((s, c) => s + c.revenue, 0);
+  const withSpend = byCampaign.filter(c => c.spend > 0);
+  const totalSpend = withSpend.reduce((s, c) => s + c.spend, 0);
+  const totalSales = withSpend.reduce((s, c) => s + c.sales, 0);
+  const totalPrinc = withSpend.reduce((s, c) => s + (c.salesPrincipal || 0), 0);
+  const totalOB1 = withSpend.reduce((s, c) => s + (c.salesOB1 || 0), 0);
+  const totalOB2 = withSpend.reduce((s, c) => s + (c.salesOB2 || 0), 0);
+  const totalRev = withSpend.reduce((s, c) => s + c.revenue, 0);
   const totalProfit = totalRev - totalSpend;
-  const topC = byCampaign.find(c => c.sales > 0);
-  $('campaignInsight').textContent = topC ? `Campanha ${topC.name} concentra volume.` : 'Nenhuma venda atribuida a campanhas.';
-  const thead = `<tr><th>Campanha</th><th class="r">Invest.</th><th class="r">Vendas</th><th class="r">Fat.</th><th class="r">Lucro</th><th class="r">ROAS</th><th>Status</th></tr>`;
-  const rows = byCampaign.filter(c => c.spend > 0).map(c => {
+  const topC = withSpend.find(c => c.sales > 0);
+  let topP = null;
+  if (withSpend.length) {
+    topP = withSpend.reduce((best, c) => (c.salesPrincipal || 0) > (best.salesPrincipal || 0) ? c : best, withSpend[0]);
+  }
+  $('campaignInsight').textContent = topC
+    ? (topP && (topP.salesPrincipal || 0) > 0
+      ? `${topP.name} lidera em vendas principal (${fmtNum(topP.salesPrincipal)}). Maior volume total: ${topC.name} (${fmtNum(topC.sales)} vendas).`
+      : `Campanha ${topC.name} concentra volume (${fmtNum(topC.sales)} vendas).`)
+    : 'Nenhuma venda atribuida a campanhas.';
+  const thCpa = `<th class="r"><span class="th-stack"><span>CPA princ.</span><span class="th-sub">invest / vendas princ.</span></span></th>`;
+  const thead = `<tr><th>Campanha</th><th class="r">V. total</th><th class="r">Princ.</th><th class="r">OB1</th><th class="r">OB2</th><th class="r">Invest.</th><th class="r">Fat.</th><th class="r">Lucro</th>${thCpa}<th class="r">ROAS</th><th>Status</th></tr>`;
+  const rows = withSpend.map(c => {
     const r = c.spend > 0 ? c.revenue / c.spend : null;
     const lucro = c.revenue - c.spend;
     const lucroClass = lucro >= 0 ? 'up' : 'down';
-    return `<tr><td>${esc(c.name)}</td><td class="r">${fmtBRL(c.spend)}</td><td class="r">${fmtNum(c.sales)}</td><td class="r">${fmtBRL(c.revenue)}</td><td class="r ${lucroClass}">${fmtBRL(lucro)}</td><td class="r" style="color:${roasColor(r)}">${r != null ? r.toFixed(2) : '—'}</td><td>${roasBadge(r)}</td></tr>`;
+    const cpaP = (c.salesPrincipal || 0) > 0 ? c.spend / c.salesPrincipal : null;
+    return `<tr><td>${esc(c.name)}</td><td class="r">${fmtNum(c.sales)}</td><td class="r">${fmtNum(c.salesPrincipal)}</td><td class="r">${fmtNum(c.salesOB1)}</td><td class="r">${fmtNum(c.salesOB2)}</td><td class="r">${fmtBRL(c.spend)}</td><td class="r">${fmtBRL(c.revenue)}</td><td class="r ${lucroClass}">${fmtBRL(lucro)}</td><td class="r">${cpaP != null ? fmtBRL(cpaP) : '—'}</td><td class="r" style="color:${roasColor(r)}">${r != null ? r.toFixed(2) : '—'}</td><td>${roasBadge(r)}</td></tr>`;
   }).join('');
   const totalRoas = totalSpend > 0 ? totalRev / totalSpend : null;
   const profitClass = totalProfit >= 0 ? 'up' : 'down';
-  const totalRow = `<tr class="total"><td>Total</td><td class="r">${fmtBRL(totalSpend)}</td><td class="r">${fmtNum(totalSales)}</td><td class="r">${fmtBRL(totalRev)}</td><td class="r ${profitClass}">${fmtBRL(totalProfit)}</td><td class="r" style="color:${roasColor(totalRoas)}">${totalRoas != null ? totalRoas.toFixed(2) : '—'}</td><td></td></tr>`;
+  const totalCpaP = totalPrinc > 0 ? totalSpend / totalPrinc : null;
+  const totalRow = `<tr class="total"><td>Total (com invest.)</td><td class="r">${fmtNum(totalSales)}</td><td class="r">${fmtNum(totalPrinc)}</td><td class="r">${fmtNum(totalOB1)}</td><td class="r">${fmtNum(totalOB2)}</td><td class="r">${fmtBRL(totalSpend)}</td><td class="r">${fmtBRL(totalRev)}</td><td class="r ${profitClass}">${fmtBRL(totalProfit)}</td><td class="r">${totalCpaP != null ? fmtBRL(totalCpaP) : '—'}</td><td class="r" style="color:${roasColor(totalRoas)}">${totalRoas != null ? totalRoas.toFixed(2) : '—'}</td><td></td></tr>`;
   $('tableCampaign').innerHTML = `<thead>${thead}</thead><tbody>${rows}${totalRow}</tbody>`;
+}
+
+function renderTableAdset(byAdset) {
+  const thCpa = `<th class="r"><span class="th-stack"><span>CPA princ.</span><span class="th-sub">invest / vendas princ.</span></span></th>`;
+  const thead = `<tr><th>Conjunto</th><th class="r">V. total</th><th class="r">Princ.</th><th class="r">OB1</th><th class="r">OB2</th><th class="r">Invest.</th><th class="r">Fat.</th><th class="r">Lucro</th>${thCpa}<th class="r">ROAS</th><th>Status</th></tr>`;
+  if (!byAdset.length) {
+    $('adsetInsight').textContent = '';
+    $('tableAdset').innerHTML = `<thead>${thead}</thead><tbody><tr><td colspan="11">Nenhuma linha Meta com <strong>adset_name</strong> no periodo filtrado.</td></tr></tbody>`;
+    return;
+  }
+  const withSpend = byAdset.filter(c => c.spend > 0);
+  if (!withSpend.length) {
+    $('adsetInsight').textContent = 'Conjuntos encontrados na Meta sem investimento no periodo.';
+    $('tableAdset').innerHTML = `<thead>${thead}</thead><tbody><tr><td colspan="11">Sem investimento para listar.</td></tr></tbody>`;
+    return;
+  }
+  const totalSpend = withSpend.reduce((s, c) => s + c.spend, 0);
+  const totalSales = withSpend.reduce((s, c) => s + c.sales, 0);
+  const totalPrinc = withSpend.reduce((s, c) => s + (c.salesPrincipal || 0), 0);
+  const totalOB1 = withSpend.reduce((s, c) => s + (c.salesOB1 || 0), 0);
+  const totalOB2 = withSpend.reduce((s, c) => s + (c.salesOB2 || 0), 0);
+  const totalRev = withSpend.reduce((s, c) => s + c.revenue, 0);
+  const totalProfit = totalRev - totalSpend;
+  const topC = withSpend.find(c => c.sales > 0);
+  $('adsetInsight').textContent = topC ? `Conjunto com mais vendas atribuidas: ${topC.name} (${fmtNum(topC.sales)}).` : 'Investimento em conjuntos sem vendas atribuidas pelo UTM.';
+  const rows = withSpend.map(c => {
+    const r = c.spend > 0 ? c.revenue / c.spend : null;
+    const lucro = c.revenue - c.spend;
+    const lucroClass = lucro >= 0 ? 'up' : 'down';
+    const cpaP = (c.salesPrincipal || 0) > 0 ? c.spend / c.salesPrincipal : null;
+    return `<tr><td>${esc(c.name)}</td><td class="r">${fmtNum(c.sales)}</td><td class="r">${fmtNum(c.salesPrincipal)}</td><td class="r">${fmtNum(c.salesOB1)}</td><td class="r">${fmtNum(c.salesOB2)}</td><td class="r">${fmtBRL(c.spend)}</td><td class="r">${fmtBRL(c.revenue)}</td><td class="r ${lucroClass}">${fmtBRL(lucro)}</td><td class="r">${cpaP != null ? fmtBRL(cpaP) : '—'}</td><td class="r" style="color:${roasColor(r)}">${r != null ? r.toFixed(2) : '—'}</td><td>${roasBadge(r)}</td></tr>`;
+  }).join('');
+  const totalRoas = totalSpend > 0 ? totalRev / totalSpend : null;
+  const profitClass = totalProfit >= 0 ? 'up' : 'down';
+  const totalCpaP = totalPrinc > 0 ? totalSpend / totalPrinc : null;
+  const totalRow = `<tr class="total"><td>Total (com invest.)</td><td class="r">${fmtNum(totalSales)}</td><td class="r">${fmtNum(totalPrinc)}</td><td class="r">${fmtNum(totalOB1)}</td><td class="r">${fmtNum(totalOB2)}</td><td class="r">${fmtBRL(totalSpend)}</td><td class="r">${fmtBRL(totalRev)}</td><td class="r ${profitClass}">${fmtBRL(totalProfit)}</td><td class="r">${totalCpaP != null ? fmtBRL(totalCpaP) : '—'}</td><td class="r" style="color:${roasColor(totalRoas)}">${totalRoas != null ? totalRoas.toFixed(2) : '—'}</td><td></td></tr>`;
+  $('tableAdset').innerHTML = `<thead>${thead}</thead><tbody>${rows}${totalRow}</tbody>`;
 }
 
 function renderTableCreative(byCreative) {
   const top = byCreative[0];
-  $('creativeInsight').textContent = top && top.sales > 0 ? `${top.name} lidera com ${top.sales} vendas.` : 'Match por criativo requer metodo "nome".';
-  const thead = `<tr><th>Anuncio</th><th class="r">Vendas</th><th class="r">Invest.</th><th class="r">Lucro</th><th class="r">CAC</th><th class="r">ROAS</th></tr>`;
+  const thCpa = `<th class="r"><span class="th-stack"><span>CPA princ.</span><span class="th-sub">invest / vendas princ.</span></span></th>`;
+  $('creativeInsight').textContent = top && top.sales > 0
+    ? `${top.name} lidera com ${fmtNum(top.sales)} vendas totais (${fmtNum(top.salesPrincipal || 0)} principal).`
+    : 'Match por criativo requer metodo "nome".';
+  const thead = `<tr><th>Anuncio</th><th class="r">V. total</th><th class="r">Princ.</th><th class="r">OB1</th><th class="r">OB2</th><th class="r">Invest.</th><th class="r">Lucro</th>${thCpa}<th class="r">ROAS</th></tr>`;
   const rows = byCreative.map(a => {
-    const cac = a.sales > 0 ? a.spend / a.sales : null;
+    const cpaP = (a.salesPrincipal || 0) > 0 ? a.spend / a.salesPrincipal : null;
     const roas = a.spend > 0 ? a.revenue / a.spend : null;
     const lucro = a.revenue - a.spend;
     const lucroClass = lucro >= 0 ? 'up' : 'down';
-    return `<tr><td>${esc(a.name)}</td><td class="r">${fmtNum(a.sales)}</td><td class="r">${fmtBRL(a.spend)}</td><td class="r ${lucroClass}">${fmtBRL(lucro)}</td><td class="r">${cac != null ? fmtBRL(cac) : '—'}</td><td class="r" style="color:${roasColor(roas)}">${roas != null ? roas.toFixed(2) : '—'}</td></tr>`;
+    return `<tr><td>${esc(a.name)}</td><td class="r">${fmtNum(a.sales)}</td><td class="r">${fmtNum(a.salesPrincipal)}</td><td class="r">${fmtNum(a.salesOB1)}</td><td class="r">${fmtNum(a.salesOB2)}</td><td class="r">${fmtBRL(a.spend)}</td><td class="r ${lucroClass}">${fmtBRL(lucro)}</td><td class="r">${cpaP != null ? fmtBRL(cpaP) : '—'}</td><td class="r" style="color:${roasColor(roas)}">${roas != null ? roas.toFixed(2) : '—'}</td></tr>`;
   }).join('');
   $('tableCreative').innerHTML = `<thead>${thead}</thead><tbody>${rows}</tbody>`;
 }
@@ -1761,6 +1885,7 @@ async function loadAndRender() {
     renderCharts(finalData.byDay, finalData.kpi);
     renderTableOffer(finalData.byOffer, finalData.kpi);
     renderTableCampaign(finalData.byCampaign);
+    renderTableAdset(finalData.byAdset);
     renderTableCreative(finalData.byCreative);
     renderTableSource(finalData.bySource, finalData.kpi);
     renderSplit(finalData.kpi, finalData.byCampaign, finalData.bySource);
@@ -1810,6 +1935,7 @@ async function refresh() {
   renderCharts(finalData.byDay, finalData.kpi);
   renderTableOffer(finalData.byOffer, finalData.kpi);
   renderTableCampaign(finalData.byCampaign);
+  renderTableAdset(finalData.byAdset);
   renderTableCreative(finalData.byCreative);
   renderTableSource(finalData.bySource, finalData.kpi);
   renderSplit(finalData.kpi, finalData.byCampaign, finalData.bySource);
