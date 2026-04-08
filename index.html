@@ -905,6 +905,38 @@ function attribMetaRowFromVenda(row, v, offerMap) {
   else if (cat === 'Order Bump 2') row.salesOB2 = (row.salesOB2 || 0) + 1;
 }
 
+/** UTM vs nome Meta: exato primeiro; depois nome contem UTM; depois UTM contem nome — em ambos os fallback, ganha o nome mais longo (mais especifico). */
+function findBestMetaStringMatch(utmRaw, rows, getName) {
+  const u = String(utmRaw || '').trim().toLowerCase();
+  if (!u) return null;
+  const list = Array.isArray(rows) ? rows : Object.values(rows);
+
+  for (const row of list) {
+    const n = String(getName(row) || '').trim().toLowerCase();
+    if (n && n === u) return row;
+  }
+
+  const nameContainsUtm = list.filter(row => {
+    const n = String(getName(row) || '').trim().toLowerCase();
+    return n && n.includes(u);
+  });
+  if (nameContainsUtm.length) {
+    nameContainsUtm.sort((a, b) => String(getName(b) || '').length - String(getName(a) || '').length);
+    return nameContainsUtm[0];
+  }
+
+  const utmContainsName = list.filter(row => {
+    const n = String(getName(row) || '').trim().toLowerCase();
+    return n && u.includes(n);
+  });
+  if (utmContainsName.length) {
+    utmContainsName.sort((a, b) => String(getName(b) || '').length - String(getName(a) || '').length);
+    return utmContainsName[0];
+  }
+
+  return null;
+}
+
 function emptyDayRow() {
   return {
     revenue: 0, spend: 0, impressions: 0, clicks: 0, lpv: 0, ic: 0,
@@ -960,14 +992,8 @@ function groupByCampaign(vendas, meta, cfg) {
     const utmCol = cfg.utmCampaign || 'utm_campaign';
     vendas.forEach(v => {
       if (v._source !== 'Meta_Ads') return;
-      const utmVal = String(v[utmCol] || '').trim().toLowerCase();
-      if (!utmVal) return;
-      for (const c of Object.values(campaigns)) {
-        if (c.name.toLowerCase().includes(utmVal) || utmVal.includes(c.name.toLowerCase())) {
-          attribMetaRowFromVenda(c, v, offerMap);
-          break;
-        }
-      }
+      const matched = findBestMetaStringMatch(v[utmCol], Object.values(campaigns), c => c.name);
+      if (matched) attribMetaRowFromVenda(matched, v, offerMap);
     });
   }
   return Object.values(campaigns).sort((a, b) => b.spend - a.spend);
@@ -993,14 +1019,8 @@ function groupByAdset(vendas, meta, cfg) {
   const utmCol = cfg.utmAdset || 'utm_medium';
   vendas.forEach(v => {
     if (v._source !== 'Meta_Ads') return;
-    const utmVal = String(v[utmCol] || '').trim().toLowerCase();
-    if (!utmVal) return;
-    for (const s of Object.values(sets)) {
-      if (s.name.toLowerCase().includes(utmVal) || utmVal.includes(s.name.toLowerCase())) {
-        attribMetaRowFromVenda(s, v, offerMap);
-        break;
-      }
-    }
+    const matched = findBestMetaStringMatch(v[utmCol], Object.values(sets), s => s.name);
+    if (matched) attribMetaRowFromVenda(matched, v, offerMap);
   });
   return Object.values(sets).sort((a, b) => b.spend - a.spend);
 }
@@ -1024,14 +1044,8 @@ function groupByCreative(vendas, meta, cfg) {
     const utmCol = cfg.utmAd || 'utm_content';
     vendas.forEach(v => {
       if (v._source !== 'Meta_Ads') return;
-      const utmVal = String(v[utmCol] || '').trim().toLowerCase();
-      if (!utmVal) return;
-      for (const a of Object.values(ads)) {
-        if (a.name.toLowerCase().includes(utmVal) || utmVal.includes(a.name.toLowerCase())) {
-          attribMetaRowFromVenda(a, v, offerMap);
-          break;
-        }
-      }
+      const matched = findBestMetaStringMatch(v[utmCol], Object.values(ads), a => a.name);
+      if (matched) attribMetaRowFromVenda(matched, v, offerMap);
     });
   }
   return Object.values(ads).sort((a, b) => b.sales - a.sales).slice(0, 10);
