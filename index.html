@@ -1121,6 +1121,25 @@ function getMonthToDateBoundsISO() {
   return { from, to, labelShort };
 }
 
+/** Dias corridos inclusivos (ISO YYYY-MM-DD), fuso local via meio-dia. */
+function inclusiveCalendarDaysISO(isoFrom, isoTo) {
+  if (!isoFrom || !isoTo) return 1;
+  const a = new Date(isoFrom + 'T12:00:00');
+  const b = new Date(isoTo + 'T12:00:00');
+  if (isNaN(a.getTime()) || isNaN(b.getTime())) return 1;
+  const diff = Math.round((b.getTime() - a.getTime()) / 86400000) + 1;
+  return diff > 0 ? diff : 1;
+}
+
+/** Duracao do periodo filtrado em dias (para prorratar media mensal). */
+function filterPeriodDayCount(cfg, byDay) {
+  if (cfg.dateFrom && cfg.dateTo) return inclusiveCalendarDaysISO(cfg.dateFrom, cfg.dateTo);
+  if (!byDay || !byDay.length) return 1;
+  const dates = byDay.map(d => d.date).filter(Boolean).sort();
+  if (!dates.length) return 1;
+  return inclusiveCalendarDaysISO(dates[0], dates[dates.length - 1]);
+}
+
 function funnelCostsFromKpi(k) {
   if (!k) return { cpm: null, cpc: null, cpLpv: null, cpIc: null, cpaMeta: null, cpaPrinc: null };
   const spend = k.totalSpend || 0;
@@ -1156,8 +1175,8 @@ function kpiCmpRoas(cur, mon) {
 
 function kpiCmpCount(cur, mon) {
   const c = cur | 0;
-  const m = mon | 0;
-  if (m === 0) {
+  const m = Number(mon);
+  if (!isFinite(m) || m <= 0) {
     if (c > 0) return kpiCmpSpan('novo', 'up');
     return kpiCmpSpan('—', '');
   }
@@ -1185,15 +1204,25 @@ function kpiCmpMoney(cur, mon, lowerIsBetter, neutral) {
   return kpiCmpSpan(t, cls);
 }
 
-function kpiVsMonthLine(kpiMonth, label, innerHtml) {
+function kpiVsMonthLine(kpiMonth, label, innerHtml, mode) {
   if (!kpiMonth || !label) return '';
-  return '<div class="kpi-compare">vs mês atual (' + label + '): ' + innerHtml + '</div>';
+  const prefix = mode === 'funnel'
+    ? 'vs mes corrente (' + label + '): '
+    : 'vs média do mês ajustada ao filtro (' + label + '): ';
+  return '<div class="kpi-compare">' + prefix + innerHtml + '</div>';
 }
 
-function renderKPIs(kpi, kpiMonth, monthLabel) {
+/** Referencia = media diaria do MTD (1–hoje) x dias do filtro; taxas agregadas do mes sem prorata. */
+function renderKPIs(kpi, kpiMonth, monthLabel, nDaysMTD, nDaysFilter) {
   const M = kpiMonth || null;
   const L = monthLabel || '';
-  const vs = inner => kpiVsMonthLine(M, L, inner);
+  const nM = Math.max(1, nDaysMTD | 0);
+  const nF = Math.max(1, nDaysFilter | 0);
+  const pr = val => {
+    if (!M || !isFinite(val)) return null;
+    return (val / nM) * nF;
+  };
+  const vs = inner => kpiVsMonthLine(M, L, inner, 'kpi');
 
   const semaforoColor = kpi.roas == null ? 'var(--muted)' : kpi.roas >= 1.5 ? 'var(--success)' : kpi.roas >= 1.0 ? 'var(--warning)' : 'var(--danger)';
   const semaforoText = kpi.roas == null ? '—' : kpi.roas >= 1.5 ? 'Saudavel' : kpi.roas >= 1.0 ? 'Atencao' : 'Critico';
@@ -1202,20 +1231,20 @@ function renderKPIs(kpi, kpiMonth, monthLabel) {
   const roasClr = roasColor(kpi.roas);
 
   $('kpiGrid4').innerHTML = `
-    <article class="card"><div class="kpi-label">Faturamento liquido</div><div class="kpi-value">${fmtBRL(kpi.totalRevenue)}</div><div class="delta">${fmtNum(kpi.totalSales)} vendas · Taxa plat.: ${fmtBRL(kpi.totalPlatformFee)}</div>${vs(kpiCmpMoney(kpi.totalRevenue, M ? M.totalRevenue : null, false, false))}</article>
-    <article class="card"><div class="kpi-label">Investimento do periodo</div><div class="kpi-value">${fmtBRL(kpi.totalSpend)}</div><div class="delta">Meta Ads</div>${vs(kpiCmpMoney(kpi.totalSpend, M ? M.totalSpend : null, false, true))}</article>
+    <article class="card"><div class="kpi-label">Faturamento liquido</div><div class="kpi-value">${fmtBRL(kpi.totalRevenue)}</div><div class="delta">${fmtNum(kpi.totalSales)} vendas · Taxa plat.: ${fmtBRL(kpi.totalPlatformFee)}</div>${vs(kpiCmpMoney(kpi.totalRevenue, pr(M?.totalRevenue), false, false))}</article>
+    <article class="card"><div class="kpi-label">Investimento do periodo</div><div class="kpi-value">${fmtBRL(kpi.totalSpend)}</div><div class="delta">Meta Ads</div>${vs(kpiCmpMoney(kpi.totalSpend, pr(M?.totalSpend), false, true))}</article>
     <article class="card"><div class="kpi-label">ROAS</div><div class="kpi-value" style="color:${roasClr}">${kpi.roas != null ? kpi.roas.toFixed(2) : '—'}</div><div class="delta">Faturamento / Investimento</div>${vs(kpiCmpRoas(kpi.roas, M ? M.roas : null))}</article>
-    <article class="card"><div class="kpi-label">Lucro</div><div class="kpi-value ${profitClass}">${fmtBRL(kpi.profit)}</div><div class="delta ${profitClass}">${kpi.profit >= 0 ? 'Positivo' : 'Negativo'}</div>${vs(kpiCmpMoney(kpi.profit, M ? M.profit : null, false, false))}</article>
+    <article class="card"><div class="kpi-label">Lucro</div><div class="kpi-value ${profitClass}">${fmtBRL(kpi.profit)}</div><div class="delta ${profitClass}">${kpi.profit >= 0 ? 'Positivo' : 'Negativo'}</div>${vs(kpiCmpMoney(kpi.profit, pr(M?.profit), false, false))}</article>
     <article class="card"><div class="kpi-label">Semaforo</div><div class="kpi-value kpi-sm" style="color:${semaforoColor}">${semaforoText}</div><div class="delta ${semaforoClass}">${kpi.roas != null ? 'ROAS ' + kpi.roas.toFixed(2) : 'Sem dados de investimento'}</div>${vs(kpiCmpRoas(kpi.roas, M ? M.roas : null))}</article>
   `;
 
   $('kpiGrid6').innerHTML = `
-    <article class="card"><div class="kpi-label">Vendas Principal</div><div class="kpi-value kpi-sm">${fmtNum(kpi.principalSales)}</div><div class="delta">Produto principal</div>${vs(kpiCmpCount(kpi.principalSales, M ? M.principalSales : 0))}</article>
-    <article class="card"><div class="kpi-label">Vendas Meta Ads</div><div class="kpi-value kpi-sm">${fmtNum(kpi.salesMetaAds)}</div><div class="delta">Trafego pago</div>${vs(kpiCmpCount(kpi.salesMetaAds, M ? M.salesMetaAds : 0))}</article>
-    <article class="card"><div class="kpi-label">Vendas Organico</div><div class="kpi-value kpi-sm">${fmtNum(kpi.salesOrganic)}</div><div class="delta">Bio + outros</div>${vs(kpiCmpCount(kpi.salesOrganic, M ? M.salesOrganic : 0))}</article>
-    <article class="card"><div class="kpi-label">Vendas OB1</div><div class="kpi-value kpi-sm">${fmtNum(kpi.ob1Sales)}</div><div class="delta">Order Bump 1</div>${vs(kpiCmpCount(kpi.ob1Sales, M ? M.ob1Sales : 0))}</article>
-    <article class="card"><div class="kpi-label">Vendas OB2</div><div class="kpi-value kpi-sm">${fmtNum(kpi.ob2Sales)}</div><div class="delta">Order Bump 2</div>${vs(kpiCmpCount(kpi.ob2Sales, M ? M.ob2Sales : 0))}</article>
-    <article class="card"><div class="kpi-label">Vendas Upsell</div><div class="kpi-value kpi-sm">${fmtNum(kpi.upsellSales)}</div><div class="delta">Upsell · Meta: ${fmtNum(kpi.upsellSalesMetaAds)}</div>${vs(kpiCmpCount(kpi.upsellSales, M ? M.upsellSales : 0))}</article>
+    <article class="card"><div class="kpi-label">Vendas Principal</div><div class="kpi-value kpi-sm">${fmtNum(kpi.principalSales)}</div><div class="delta">Produto principal</div>${vs(kpiCmpCount(kpi.principalSales, pr(M?.principalSales)))}</article>
+    <article class="card"><div class="kpi-label">Vendas Meta Ads</div><div class="kpi-value kpi-sm">${fmtNum(kpi.salesMetaAds)}</div><div class="delta">Trafego pago</div>${vs(kpiCmpCount(kpi.salesMetaAds, pr(M?.salesMetaAds)))}</article>
+    <article class="card"><div class="kpi-label">Vendas Organico</div><div class="kpi-value kpi-sm">${fmtNum(kpi.salesOrganic)}</div><div class="delta">Bio + outros</div>${vs(kpiCmpCount(kpi.salesOrganic, pr(M?.salesOrganic)))}</article>
+    <article class="card"><div class="kpi-label">Vendas OB1</div><div class="kpi-value kpi-sm">${fmtNum(kpi.ob1Sales)}</div><div class="delta">Order Bump 1</div>${vs(kpiCmpCount(kpi.ob1Sales, pr(M?.ob1Sales)))}</article>
+    <article class="card"><div class="kpi-label">Vendas OB2</div><div class="kpi-value kpi-sm">${fmtNum(kpi.ob2Sales)}</div><div class="delta">Order Bump 2</div>${vs(kpiCmpCount(kpi.ob2Sales, pr(M?.ob2Sales)))}</article>
+    <article class="card"><div class="kpi-label">Vendas Upsell</div><div class="kpi-value kpi-sm">${fmtNum(kpi.upsellSales)}</div><div class="delta">Upsell · Meta: ${fmtNum(kpi.upsellSalesMetaAds)}</div>${vs(kpiCmpCount(kpi.upsellSales, pr(M?.upsellSales)))}</article>
     <article class="card"><div class="kpi-label">Take rate OB1</div><div class="kpi-value kpi-sm">${fmtPct(kpi.takeRateOB1)}</div><div class="delta">OB1 / Principal</div>${vs(kpiCmpPP(kpi.takeRateOB1, M ? M.takeRateOB1 : null))}</article>
     <article class="card"><div class="kpi-label">Take rate OB2</div><div class="kpi-value kpi-sm">${fmtPct(kpi.takeRateOB2)}</div><div class="delta">OB2 / Principal</div>${vs(kpiCmpPP(kpi.takeRateOB2, M ? M.takeRateOB2 : null))}</article>
     <article class="card"><div class="kpi-label">Take rate Upsell</div><div class="kpi-value kpi-sm">${fmtPct(kpi.takeRateUpsell)}</div><div class="delta">Upsell / Principal</div>${vs(kpiCmpPP(kpi.takeRateUpsell, M ? M.takeRateUpsell : null))}</article>
@@ -1242,7 +1271,7 @@ function renderFunnelKPIs(kpi, kpiMonth, monthLabel) {
 
   const M = kpiMonth || null;
   const L = monthLabel || '';
-  const vs = inner => kpiVsMonthLine(M, L, inner);
+  const vs = inner => kpiVsMonthLine(M, L, inner, 'funnel');
   const fm = funnelCostsFromKpi(M);
 
   const cost1 = `<div class="kpi-funnel-cost"><div class="kpi-funnel-cost-row">CPM · ${fmtFunnelCostBRL(cpm)}</div><div class="kpi-funnel-cost-row">CPC · ${fmtFunnelCostBRL(cpc)}</div></div>` +
@@ -1989,10 +2018,12 @@ async function loadAndRender() {
     const mtd = getMonthToDateBoundsISO();
     const monthCfg = { ...finalCfg, dateFrom: mtd.from, dateTo: mtd.to };
     const kpiMonth = processData(rawVendas, rawMeta, monthCfg).kpi;
+    const nDaysMTD = inclusiveCalendarDaysISO(mtd.from, mtd.to);
+    const nDaysFilter = filterPeriodDayCount(finalCfg, finalData.byDay);
 
     enrichDayWithOfferSales(finalData.byDay, finalData.vendas, finalCfg.offerMap);
 
-    renderKPIs(finalData.kpi, kpiMonth, mtd.labelShort);
+    renderKPIs(finalData.kpi, kpiMonth, mtd.labelShort, nDaysMTD, nDaysFilter);
     renderFunnelKPIs(finalData.kpi, kpiMonth, mtd.labelShort);
     renderFunnelVisual(finalData.kpi);
     renderCharts(finalData.byDay, finalData.kpi);
@@ -2044,8 +2075,10 @@ async function refresh() {
   const mtd = getMonthToDateBoundsISO();
   const monthCfg = { ...cfg, dateFrom: mtd.from, dateTo: mtd.to };
   const kpiMonth = processData(window._rawVendas, window._rawMeta, monthCfg).kpi;
+  const nDaysMTD = inclusiveCalendarDaysISO(mtd.from, mtd.to);
+  const nDaysFilter = filterPeriodDayCount(cfg, finalData.byDay);
   enrichDayWithOfferSales(finalData.byDay, finalData.vendas, cfg.offerMap);
-  renderKPIs(finalData.kpi, kpiMonth, mtd.labelShort);
+  renderKPIs(finalData.kpi, kpiMonth, mtd.labelShort, nDaysMTD, nDaysFilter);
   renderFunnelKPIs(finalData.kpi, kpiMonth, mtd.labelShort);
   renderFunnelVisual(finalData.kpi);
   renderCharts(finalData.byDay, finalData.kpi);
