@@ -183,6 +183,11 @@
     .kpi-value { font-size: 28px; font-weight: 700; margin-bottom: 6px; font-variant-numeric: tabular-nums; }
     .kpi-sm { font-size: 21px; }
     .delta { font-size: 12px; font-weight: 600; color: var(--muted); }
+    .kpi-compare { font-size: 11px; font-weight: 600; color: var(--muted); margin-top: 6px; line-height: 1.35; }
+    .kpi-compare .up { color: var(--success); }
+    .kpi-compare .down { color: var(--danger); }
+    .kpi-compare .warn { color: var(--warning); }
+    .kpi-compare-funnel-sub { font-size: 10px; margin-top: 4px; font-weight: 600; }
     .kpi-funnel-cost { margin: -2px 0 6px; font-size: 11px; font-weight: 600; color: var(--accent-03); line-height: 1.45; }
     .kpi-funnel-cost-row + .kpi-funnel-cost-row { margin-top: 2px; }
     .up { color: var(--success); }
@@ -853,6 +858,9 @@ function processData(rawVendas, rawMeta, cfg) {
   const ob2Sales = categorized['Order Bump 2']?.sales || 0;
   const takeRateOB1 = principalSales > 0 ? ob1Sales / principalSales : 0;
   const takeRateOB2 = principalSales > 0 ? ob2Sales / principalSales : 0;
+  const upsellSales = categorized['Upsell']?.sales || 0;
+  const upsellRevenue = categorized['Upsell']?.revenue || 0;
+  const takeRateUpsell = principalSales > 0 ? upsellSales / principalSales : 0;
   const cacGeral = totalSales > 0 ? totalSpend / totalSales : 0;
 
   const principalSalesMetaAds = vendas.filter(v => {
@@ -865,6 +873,11 @@ function processData(rawVendas, rawMeta, cfg) {
   const ticketMedio = principalSales > 0 ? totalRevenue / principalSales : 0;
   const salesMetaAds = vendas.filter(v => v._source === 'Meta_Ads').length;
   const salesOrganic = vendas.filter(v => v._source !== 'Meta_Ads').length;
+  const upsellSalesMetaAds = vendas.filter(v => {
+    const name = String(v.offer_name || v.product_name || '').trim();
+    const cat = (cfg.offerMap || {})[name] || 'Produto Principal';
+    return cat === 'Upsell' && v._source === 'Meta_Ads';
+  }).length;
 
   const totalImpressions = meta.reduce((s, m) => s + m._impressions, 0);
   const totalClicks = meta.reduce((s, m) => s + m._clicks, 0);
@@ -888,7 +901,7 @@ function processData(rawVendas, rawMeta, cfg) {
   return {
     vendas, meta, offerNames,
     kpi: {
-      totalRevenue, totalSpend, totalPlatformFee, roas, profit, totalSales, principalSales, ob1Sales, ob2Sales, takeRateOB1, takeRateOB2, cacGeral, cpaPrincipal, cpaPrincipalMeta, principalSalesMetaAds, ticketMedio, salesMetaAds, salesOrganic,
+      totalRevenue, totalSpend, totalPlatformFee, roas, profit, totalSales, principalSales, ob1Sales, ob2Sales, upsellSales, upsellRevenue, takeRateOB1, takeRateOB2, takeRateUpsell, upsellSalesMetaAds, cacGeral, cpaPrincipal, cpaPrincipalMeta, principalSalesMetaAds, ticketMedio, salesMetaAds, salesOrganic,
       totalImpressions, totalClicks, totalLpv, totalIc, ctr, connectRate, icPerLpv, convPageMeta, convPageTotal, convCheckoutMeta, convCheckoutTotal
     },
     categorized, byDay, byCampaign, byAdset, byCreative, bySource, byOffer
@@ -903,6 +916,7 @@ function attribMetaRowFromVenda(row, v, offerMap) {
   if (cat === 'Produto Principal') row.salesPrincipal = (row.salesPrincipal || 0) + 1;
   else if (cat === 'Order Bump 1') row.salesOB1 = (row.salesOB1 || 0) + 1;
   else if (cat === 'Order Bump 2') row.salesOB2 = (row.salesOB2 || 0) + 1;
+  else if (cat === 'Upsell') row.salesUpsell = (row.salesUpsell || 0) + 1;
 }
 
 /** UTM vs nome Meta: exato primeiro; depois nome contem UTM; depois UTM contem nome — em ambos os fallback, ganha o nome mais longo (mais especifico). */
@@ -971,7 +985,7 @@ function groupByCampaign(vendas, meta, cfg) {
     if (!campaigns[name]) {
       campaigns[name] = {
         name, spend: 0, impressions: 0, clicks: 0, sales: 0, revenue: 0,
-        salesPrincipal: 0, salesOB1: 0, salesOB2: 0, cid: m._cid
+        salesPrincipal: 0, salesOB1: 0, salesOB2: 0, salesUpsell: 0, cid: m._cid
       };
     }
     campaigns[name].spend += m._spend;
@@ -1008,7 +1022,7 @@ function groupByAdset(vendas, meta, cfg) {
     if (!sets[name]) {
       sets[name] = {
         name, spend: 0, impressions: 0, clicks: 0, sales: 0, revenue: 0,
-        salesPrincipal: 0, salesOB1: 0, salesOB2: 0
+        salesPrincipal: 0, salesOB1: 0, salesOB2: 0, salesUpsell: 0
       };
     }
     sets[name].spend += m._spend;
@@ -1034,7 +1048,7 @@ function groupByCreative(vendas, meta, cfg) {
     if (!ads[name]) {
       ads[name] = {
         name, spend: 0, sales: 0, revenue: 0,
-        salesPrincipal: 0, salesOB1: 0, salesOB2: 0
+        salesPrincipal: 0, salesOB1: 0, salesOB2: 0, salesUpsell: 0
       };
     }
     ads[name].spend += m._spend;
@@ -1096,7 +1110,91 @@ function roasColor(roas) {
   return '#FC7148';
 }
 
-function renderKPIs(kpi) {
+function getMonthToDateBoundsISO() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const mo = d.getMonth() + 1;
+  const day = d.getDate();
+  const from = y + '-' + String(mo).padStart(2, '0') + '-01';
+  const to = y + '-' + String(mo).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+  const labelShort = '1–' + String(day).padStart(2, '0') + '/' + String(mo).padStart(2, '0');
+  return { from, to, labelShort };
+}
+
+function funnelCostsFromKpi(k) {
+  if (!k) return { cpm: null, cpc: null, cpLpv: null, cpIc: null, cpaMeta: null, cpaPrinc: null };
+  const spend = k.totalSpend || 0;
+  return {
+    cpm: k.totalImpressions > 0 ? (spend / k.totalImpressions) * 1000 : null,
+    cpc: k.totalClicks > 0 ? spend / k.totalClicks : null,
+    cpLpv: k.totalLpv > 0 ? spend / k.totalLpv : null,
+    cpIc: k.totalIc > 0 ? spend / k.totalIc : null,
+    cpaMeta: k.principalSalesMetaAds > 0 ? k.cpaPrincipalMeta : null,
+    cpaPrinc: k.principalSales > 0 ? k.cpaPrincipal : null
+  };
+}
+
+function kpiCmpSpan(text, cls) {
+  return '<span class="' + cls + '">' + text + '</span>';
+}
+
+function kpiCmpPP(curRatio, monRatio) {
+  if (curRatio == null || monRatio == null || isNaN(curRatio) || isNaN(monRatio)) return kpiCmpSpan('—', '');
+  const dpp = (curRatio - monRatio) * 100;
+  const t = (dpp > 0 ? '+' : '') + dpp.toFixed(2).replace('.', ',') + ' pp';
+  const cls = dpp > 0 ? 'up' : dpp < 0 ? 'down' : '';
+  return kpiCmpSpan(t, cls);
+}
+
+function kpiCmpRoas(cur, mon) {
+  if (cur == null || mon == null || isNaN(cur) || isNaN(mon)) return kpiCmpSpan('—', '');
+  const d = cur - mon;
+  const t = (d > 0 ? '+' : '') + d.toFixed(2).replace('.', ',');
+  const cls = d > 0 ? 'up' : d < 0 ? 'down' : '';
+  return kpiCmpSpan(t, cls);
+}
+
+function kpiCmpCount(cur, mon) {
+  const c = cur | 0;
+  const m = mon | 0;
+  if (m === 0) {
+    if (c > 0) return kpiCmpSpan('novo', 'up');
+    return kpiCmpSpan('—', '');
+  }
+  const d = ((c - m) / m) * 100;
+  const t = (d > 0 ? '+' : '') + Math.round(d) + '%';
+  const cls = d > 0 ? 'up' : d < 0 ? 'down' : '';
+  return kpiCmpSpan(t, cls);
+}
+
+function kpiCmpMoney(cur, mon, lowerIsBetter, neutral) {
+  if (cur == null || mon == null || !isFinite(cur) || !isFinite(mon)) return kpiCmpSpan('—', '');
+  const d = cur - mon;
+  const sign = d > 0 ? '+' : d < 0 ? '−' : '';
+  let pctPart = '';
+  if (mon !== 0 && isFinite(mon)) {
+    const p = ((cur - mon) / Math.abs(mon)) * 100;
+    pctPart = ' (' + (p > 0 ? '+' : '') + Math.round(p) + '%)';
+  }
+  const t = sign + fmtBRL(Math.abs(d)) + pctPart;
+  let cls = '';
+  if (!neutral) {
+    if (lowerIsBetter) cls = d < 0 ? 'up' : d > 0 ? 'down' : '';
+    else cls = d > 0 ? 'up' : d < 0 ? 'down' : '';
+  }
+  return kpiCmpSpan(t, cls);
+}
+
+function kpiVsMonthLine(kpiMonth, label, innerHtml) {
+  if (!kpiMonth || !label) return '';
+  return '<div class="kpi-compare">vs mês atual (' + label + '): ' + innerHtml + '</div>';
+}
+
+function renderKPIs(kpi, kpiMonth, monthLabel) {
+  const M = kpiMonth || null;
+  const L = monthLabel || '';
+  const vs = inner => kpiVsMonthLine(M, L, inner);
+
   const semaforoColor = kpi.roas == null ? 'var(--muted)' : kpi.roas >= 1.5 ? 'var(--success)' : kpi.roas >= 1.0 ? 'var(--warning)' : 'var(--danger)';
   const semaforoText = kpi.roas == null ? '—' : kpi.roas >= 1.5 ? 'Saudavel' : kpi.roas >= 1.0 ? 'Atencao' : 'Critico';
   const semaforoClass = kpi.roas == null ? '' : kpi.roas >= 1.5 ? 'up' : kpi.roas >= 1.0 ? 'warn' : 'down';
@@ -1104,25 +1202,27 @@ function renderKPIs(kpi) {
   const roasClr = roasColor(kpi.roas);
 
   $('kpiGrid4').innerHTML = `
-    <article class="card"><div class="kpi-label">Faturamento liquido</div><div class="kpi-value">${fmtBRL(kpi.totalRevenue)}</div><div class="delta">${fmtNum(kpi.totalSales)} vendas · Taxa plat.: ${fmtBRL(kpi.totalPlatformFee)}</div></article>
-    <article class="card"><div class="kpi-label">Investimento do periodo</div><div class="kpi-value">${fmtBRL(kpi.totalSpend)}</div><div class="delta">Meta Ads</div></article>
-    <article class="card"><div class="kpi-label">ROAS</div><div class="kpi-value" style="color:${roasClr}">${kpi.roas != null ? kpi.roas.toFixed(2) : '—'}</div><div class="delta">Faturamento / Investimento</div></article>
-    <article class="card"><div class="kpi-label">Lucro</div><div class="kpi-value ${profitClass}">${fmtBRL(kpi.profit)}</div><div class="delta ${profitClass}">${kpi.profit >= 0 ? 'Positivo' : 'Negativo'}</div></article>
-    <article class="card"><div class="kpi-label">Semaforo</div><div class="kpi-value kpi-sm" style="color:${semaforoColor}">${semaforoText}</div><div class="delta ${semaforoClass}">${kpi.roas != null ? 'ROAS ' + kpi.roas.toFixed(2) : 'Sem dados de investimento'}</div></article>
+    <article class="card"><div class="kpi-label">Faturamento liquido</div><div class="kpi-value">${fmtBRL(kpi.totalRevenue)}</div><div class="delta">${fmtNum(kpi.totalSales)} vendas · Taxa plat.: ${fmtBRL(kpi.totalPlatformFee)}</div>${vs(kpiCmpMoney(kpi.totalRevenue, M ? M.totalRevenue : null, false, false))}</article>
+    <article class="card"><div class="kpi-label">Investimento do periodo</div><div class="kpi-value">${fmtBRL(kpi.totalSpend)}</div><div class="delta">Meta Ads</div>${vs(kpiCmpMoney(kpi.totalSpend, M ? M.totalSpend : null, false, true))}</article>
+    <article class="card"><div class="kpi-label">ROAS</div><div class="kpi-value" style="color:${roasClr}">${kpi.roas != null ? kpi.roas.toFixed(2) : '—'}</div><div class="delta">Faturamento / Investimento</div>${vs(kpiCmpRoas(kpi.roas, M ? M.roas : null))}</article>
+    <article class="card"><div class="kpi-label">Lucro</div><div class="kpi-value ${profitClass}">${fmtBRL(kpi.profit)}</div><div class="delta ${profitClass}">${kpi.profit >= 0 ? 'Positivo' : 'Negativo'}</div>${vs(kpiCmpMoney(kpi.profit, M ? M.profit : null, false, false))}</article>
+    <article class="card"><div class="kpi-label">Semaforo</div><div class="kpi-value kpi-sm" style="color:${semaforoColor}">${semaforoText}</div><div class="delta ${semaforoClass}">${kpi.roas != null ? 'ROAS ' + kpi.roas.toFixed(2) : 'Sem dados de investimento'}</div>${vs(kpiCmpRoas(kpi.roas, M ? M.roas : null))}</article>
   `;
 
   $('kpiGrid6').innerHTML = `
-    <article class="card"><div class="kpi-label">Vendas Principal</div><div class="kpi-value kpi-sm">${fmtNum(kpi.principalSales)}</div><div class="delta">Produto principal</div></article>
-    <article class="card"><div class="kpi-label">Vendas Meta Ads</div><div class="kpi-value kpi-sm">${fmtNum(kpi.salesMetaAds)}</div><div class="delta">Trafego pago</div></article>
-    <article class="card"><div class="kpi-label">Vendas Organico</div><div class="kpi-value kpi-sm">${fmtNum(kpi.salesOrganic)}</div><div class="delta">Bio + outros</div></article>
-    <article class="card"><div class="kpi-label">Vendas OB1</div><div class="kpi-value kpi-sm">${fmtNum(kpi.ob1Sales)}</div><div class="delta">Order Bump 1</div></article>
-    <article class="card"><div class="kpi-label">Vendas OB2</div><div class="kpi-value kpi-sm">${fmtNum(kpi.ob2Sales)}</div><div class="delta">Order Bump 2</div></article>
-    <article class="card"><div class="kpi-label">Take rate OB1</div><div class="kpi-value kpi-sm">${fmtPct(kpi.takeRateOB1)}</div><div class="delta">OB1 / Principal</div></article>
-    <article class="card"><div class="kpi-label">Take rate OB2</div><div class="kpi-value kpi-sm">${fmtPct(kpi.takeRateOB2)}</div><div class="delta">OB2 / Principal</div></article>
-    <article class="card"><div class="kpi-label">Ticket Medio</div><div class="kpi-value kpi-sm">${fmtBRL(kpi.ticketMedio)}</div><div class="delta">Fat. / ${fmtNum(kpi.principalSales)} vendas princ.</div></article>
-    <article class="card"><div class="kpi-label">CAC geral</div><div class="kpi-value kpi-sm">${fmtBRL(kpi.cacGeral)}</div><div class="delta">Invest / vendas totais</div></article>
-    <article class="card"><div class="kpi-label">CPA Principal</div><div class="kpi-value kpi-sm">${fmtBRL(kpi.cpaPrincipal)}</div><div class="delta">Invest / ${fmtNum(kpi.principalSales)} vendas princ.</div></article>
-    <article class="card"><div class="kpi-label">CPA Princ. Meta Ads</div><div class="kpi-value kpi-sm">${fmtBRL(kpi.cpaPrincipalMeta)}</div><div class="delta">Invest / ${fmtNum(kpi.principalSalesMetaAds)} vendas Meta</div></article>
+    <article class="card"><div class="kpi-label">Vendas Principal</div><div class="kpi-value kpi-sm">${fmtNum(kpi.principalSales)}</div><div class="delta">Produto principal</div>${vs(kpiCmpCount(kpi.principalSales, M ? M.principalSales : 0))}</article>
+    <article class="card"><div class="kpi-label">Vendas Meta Ads</div><div class="kpi-value kpi-sm">${fmtNum(kpi.salesMetaAds)}</div><div class="delta">Trafego pago</div>${vs(kpiCmpCount(kpi.salesMetaAds, M ? M.salesMetaAds : 0))}</article>
+    <article class="card"><div class="kpi-label">Vendas Organico</div><div class="kpi-value kpi-sm">${fmtNum(kpi.salesOrganic)}</div><div class="delta">Bio + outros</div>${vs(kpiCmpCount(kpi.salesOrganic, M ? M.salesOrganic : 0))}</article>
+    <article class="card"><div class="kpi-label">Vendas OB1</div><div class="kpi-value kpi-sm">${fmtNum(kpi.ob1Sales)}</div><div class="delta">Order Bump 1</div>${vs(kpiCmpCount(kpi.ob1Sales, M ? M.ob1Sales : 0))}</article>
+    <article class="card"><div class="kpi-label">Vendas OB2</div><div class="kpi-value kpi-sm">${fmtNum(kpi.ob2Sales)}</div><div class="delta">Order Bump 2</div>${vs(kpiCmpCount(kpi.ob2Sales, M ? M.ob2Sales : 0))}</article>
+    <article class="card"><div class="kpi-label">Vendas Upsell</div><div class="kpi-value kpi-sm">${fmtNum(kpi.upsellSales)}</div><div class="delta">Upsell · Meta: ${fmtNum(kpi.upsellSalesMetaAds)}</div>${vs(kpiCmpCount(kpi.upsellSales, M ? M.upsellSales : 0))}</article>
+    <article class="card"><div class="kpi-label">Take rate OB1</div><div class="kpi-value kpi-sm">${fmtPct(kpi.takeRateOB1)}</div><div class="delta">OB1 / Principal</div>${vs(kpiCmpPP(kpi.takeRateOB1, M ? M.takeRateOB1 : null))}</article>
+    <article class="card"><div class="kpi-label">Take rate OB2</div><div class="kpi-value kpi-sm">${fmtPct(kpi.takeRateOB2)}</div><div class="delta">OB2 / Principal</div>${vs(kpiCmpPP(kpi.takeRateOB2, M ? M.takeRateOB2 : null))}</article>
+    <article class="card"><div class="kpi-label">Take rate Upsell</div><div class="kpi-value kpi-sm">${fmtPct(kpi.takeRateUpsell)}</div><div class="delta">Upsell / Principal</div>${vs(kpiCmpPP(kpi.takeRateUpsell, M ? M.takeRateUpsell : null))}</article>
+    <article class="card"><div class="kpi-label">Ticket Medio</div><div class="kpi-value kpi-sm">${fmtBRL(kpi.ticketMedio)}</div><div class="delta">Fat. / ${fmtNum(kpi.principalSales)} vendas princ.</div>${vs(kpiCmpMoney(kpi.ticketMedio, M ? M.ticketMedio : null, false, false))}</article>
+    <article class="card"><div class="kpi-label">CAC geral</div><div class="kpi-value kpi-sm">${fmtBRL(kpi.cacGeral)}</div><div class="delta">Invest / vendas totais</div>${vs(kpiCmpMoney(kpi.cacGeral, M ? M.cacGeral : null, true, false))}</article>
+    <article class="card"><div class="kpi-label">CPA Principal</div><div class="kpi-value kpi-sm">${fmtBRL(kpi.cpaPrincipal)}</div><div class="delta">Invest / ${fmtNum(kpi.principalSales)} vendas princ.</div>${vs(kpiCmpMoney(kpi.cpaPrincipal, M ? M.cpaPrincipal : null, true, false))}</article>
+    <article class="card"><div class="kpi-label">CPA Princ. Meta Ads</div><div class="kpi-value kpi-sm">${fmtBRL(kpi.cpaPrincipalMeta)}</div><div class="delta">Invest / ${fmtNum(kpi.principalSalesMetaAds)} vendas Meta</div>${vs(kpiCmpMoney(kpi.cpaPrincipalMeta, M ? M.cpaPrincipalMeta : null, true, false))}</article>
   `;
 }
 
@@ -1131,7 +1231,7 @@ function fmtPctFromRatio(v) {
   return (v * 100).toFixed(2) + '%';
 }
 
-function renderFunnelKPIs(kpi) {
+function renderFunnelKPIs(kpi, kpiMonth, monthLabel) {
   const spend = kpi.totalSpend || 0;
   const cpm = kpi.totalImpressions > 0 ? (spend / kpi.totalImpressions) * 1000 : null;
   const cpc = kpi.totalClicks > 0 ? spend / kpi.totalClicks : null;
@@ -1140,20 +1240,30 @@ function renderFunnelKPIs(kpi) {
   const cpaMeta = kpi.principalSalesMetaAds > 0 ? kpi.cpaPrincipalMeta : null;
   const cpaPrinc = kpi.principalSales > 0 ? kpi.cpaPrincipal : null;
 
-  const cost1 = `<div class="kpi-funnel-cost"><div class="kpi-funnel-cost-row">CPM · ${fmtFunnelCostBRL(cpm)}</div><div class="kpi-funnel-cost-row">CPC · ${fmtFunnelCostBRL(cpc)}</div></div>`;
-  const cost2 = `<div class="kpi-funnel-cost"><div class="kpi-funnel-cost-row">CP LPV · ${fmtFunnelCostBRL(cpLpv)}</div></div>`;
-  const cost3 = `<div class="kpi-funnel-cost"><div class="kpi-funnel-cost-row">CP IC · ${fmtFunnelCostBRL(cpIc)}</div></div>`;
-  const cost4 = `<div class="kpi-funnel-cost"><div class="kpi-funnel-cost-row">CPA princ. Meta · ${fmtFunnelCostBRL(cpaMeta)}</div></div>`;
-  const cost5 = `<div class="kpi-funnel-cost"><div class="kpi-funnel-cost-row">CPA princ. · ${fmtFunnelCostBRL(cpaPrinc)}</div></div>`;
+  const M = kpiMonth || null;
+  const L = monthLabel || '';
+  const vs = inner => kpiVsMonthLine(M, L, inner);
+  const fm = funnelCostsFromKpi(M);
+
+  const cost1 = `<div class="kpi-funnel-cost"><div class="kpi-funnel-cost-row">CPM · ${fmtFunnelCostBRL(cpm)}</div><div class="kpi-funnel-cost-row">CPC · ${fmtFunnelCostBRL(cpc)}</div></div>` +
+    (M ? `<div class="kpi-compare kpi-compare-funnel-sub">CPM ${kpiCmpMoney(cpm, fm.cpm, true, false)} · CPC ${kpiCmpMoney(cpc, fm.cpc, true, false)}</div>` : '');
+  const cost2 = `<div class="kpi-funnel-cost"><div class="kpi-funnel-cost-row">CP LPV · ${fmtFunnelCostBRL(cpLpv)}</div></div>` +
+    (M ? `<div class="kpi-compare kpi-compare-funnel-sub">CP LPV ${kpiCmpMoney(cpLpv, fm.cpLpv, true, false)}</div>` : '');
+  const cost3 = `<div class="kpi-funnel-cost"><div class="kpi-funnel-cost-row">CP IC · ${fmtFunnelCostBRL(cpIc)}</div></div>` +
+    (M ? `<div class="kpi-compare kpi-compare-funnel-sub">CP IC ${kpiCmpMoney(cpIc, fm.cpIc, true, false)}</div>` : '');
+  const cost4 = `<div class="kpi-funnel-cost"><div class="kpi-funnel-cost-row">CPA princ. Meta · ${fmtFunnelCostBRL(cpaMeta)}</div></div>` +
+    (M ? `<div class="kpi-compare kpi-compare-funnel-sub">CPA Meta ${kpiCmpMoney(cpaMeta, fm.cpaMeta, true, false)}</div>` : '');
+  const cost5 = `<div class="kpi-funnel-cost"><div class="kpi-funnel-cost-row">CPA princ. · ${fmtFunnelCostBRL(cpaPrinc)}</div></div>` +
+    (M ? `<div class="kpi-compare kpi-compare-funnel-sub">CPA princ. ${kpiCmpMoney(cpaPrinc, fm.cpaPrinc, true, false)}</div>` : '');
 
   $('kpiGridFunnel').innerHTML = `
-    <article class="card"><div class="kpi-label">CTR</div>${cost1}<div class="kpi-value kpi-sm">${fmtPctFromRatio(kpi.ctr)}</div><div class="delta">Cliques / Impressoes · ${fmtNum(kpi.totalClicks)} / ${fmtNum(kpi.totalImpressions)}</div></article>
-    <article class="card"><div class="kpi-label">Connect Rate</div>${cost2}<div class="kpi-value kpi-sm">${fmtPctFromRatio(kpi.connectRate)}</div><div class="delta">LPV / Cliques · ${fmtNum(kpi.totalLpv)} / ${fmtNum(kpi.totalClicks)}</div></article>
-    <article class="card"><div class="kpi-label">Ida Checkout Tráfego</div>${cost3}<div class="kpi-value kpi-sm">${fmtPctFromRatio(kpi.icPerLpv)}</div><div class="delta">Initiate Checkout / LPV · ${fmtNum(kpi.totalIc)} / ${fmtNum(kpi.totalLpv)}</div></article>
-    <article class="card"><div class="kpi-label">Conv. Pagina Meta</div>${cost4}<div class="kpi-value kpi-sm">${fmtPctFromRatio(kpi.convPageMeta)}</div><div class="delta">Principal Meta / LPV · ${fmtNum(kpi.principalSalesMetaAds)} vendas</div></article>
-    <article class="card"><div class="kpi-label">Conv. Pagina Total</div>${cost5}<div class="kpi-value kpi-sm">${fmtPctFromRatio(kpi.convPageTotal)}</div><div class="delta">Principal total / LPV · ${fmtNum(kpi.principalSales)} vendas</div></article>
-    <article class="card"><div class="kpi-label">Conv. Checkout Meta</div><div class="kpi-value kpi-sm">${fmtPctFromRatio(kpi.convCheckoutMeta)}</div><div class="delta">Principal Meta / Initiate Checkout</div></article>
-    <article class="card"><div class="kpi-label">Conv. Checkout Total</div><div class="kpi-value kpi-sm">${fmtPctFromRatio(kpi.convCheckoutTotal)}</div><div class="delta">Principal total / Initiate Checkout</div></article>
+    <article class="card"><div class="kpi-label">CTR</div>${cost1}<div class="kpi-value kpi-sm">${fmtPctFromRatio(kpi.ctr)}</div><div class="delta">Cliques / Impressoes · ${fmtNum(kpi.totalClicks)} / ${fmtNum(kpi.totalImpressions)}</div>${vs(kpiCmpPP(kpi.ctr, M ? M.ctr : null))}</article>
+    <article class="card"><div class="kpi-label">Connect Rate</div>${cost2}<div class="kpi-value kpi-sm">${fmtPctFromRatio(kpi.connectRate)}</div><div class="delta">LPV / Cliques · ${fmtNum(kpi.totalLpv)} / ${fmtNum(kpi.totalClicks)}</div>${vs(kpiCmpPP(kpi.connectRate, M ? M.connectRate : null))}</article>
+    <article class="card"><div class="kpi-label">Ida Checkout Tráfego</div>${cost3}<div class="kpi-value kpi-sm">${fmtPctFromRatio(kpi.icPerLpv)}</div><div class="delta">Initiate Checkout / LPV · ${fmtNum(kpi.totalIc)} / ${fmtNum(kpi.totalLpv)}</div>${vs(kpiCmpPP(kpi.icPerLpv, M ? M.icPerLpv : null))}</article>
+    <article class="card"><div class="kpi-label">Conv. Pagina Meta</div>${cost4}<div class="kpi-value kpi-sm">${fmtPctFromRatio(kpi.convPageMeta)}</div><div class="delta">Principal Meta / LPV · ${fmtNum(kpi.principalSalesMetaAds)} vendas</div>${vs(kpiCmpPP(kpi.convPageMeta, M ? M.convPageMeta : null))}</article>
+    <article class="card"><div class="kpi-label">Conv. Pagina Total</div>${cost5}<div class="kpi-value kpi-sm">${fmtPctFromRatio(kpi.convPageTotal)}</div><div class="delta">Principal total / LPV · ${fmtNum(kpi.principalSales)} vendas</div>${vs(kpiCmpPP(kpi.convPageTotal, M ? M.convPageTotal : null))}</article>
+    <article class="card"><div class="kpi-label">Conv. Checkout Meta</div><div class="kpi-value kpi-sm">${fmtPctFromRatio(kpi.convCheckoutMeta)}</div><div class="delta">Principal Meta / Initiate Checkout</div>${vs(kpiCmpPP(kpi.convCheckoutMeta, M ? M.convCheckoutMeta : null))}</article>
+    <article class="card"><div class="kpi-label">Conv. Checkout Total</div><div class="kpi-value kpi-sm">${fmtPctFromRatio(kpi.convCheckoutTotal)}</div><div class="delta">Principal total / Initiate Checkout</div>${vs(kpiCmpPP(kpi.convCheckoutTotal, M ? M.convCheckoutTotal : null))}</article>
   `;
 }
 
@@ -1168,8 +1278,10 @@ function renderFunnelVisual(kpi) {
   const cpIc = kpi.totalIc > 0 ? spend / kpi.totalIc : null;
   const cpaMeta = kpi.principalSalesMetaAds > 0 ? kpi.cpaPrincipalMeta : null;
   const cpaPrinc = kpi.principalSales > 0 ? kpi.cpaPrincipal : null;
+  const upsellN = kpi.upsellSales || 0;
   const obTotal = (kpi.ob1Sales || 0) + (kpi.ob2Sales || 0);
   const pctOb = kpi.principalSales > 0 ? obTotal / kpi.principalSales : null;
+  const obValHtml = fmtNum(obTotal) + (upsellN ? '<br><span style="opacity:.88;font-size:11px;">+ Upsell: ' + fmtNum(upsellN) + '</span>' : '');
 
   const fvRow = (left, label, valHtml, right) =>
     `<div class="funnel-viz-row">
@@ -1193,7 +1305,7 @@ function renderFunnelVisual(kpi) {
     ${fvRow(fmtPctFromRatio(kpi.connectRate), 'Landing page views', fmtNum(kpi.totalLpv), 'CP LPV · ' + fmtFunnelCostBRL(cpLpv))}
     ${fvRow(fmtPctFromRatio(kpi.icPerLpv), 'Initiate checkout', fmtNum(kpi.totalIc), 'CP IC · ' + fmtFunnelCostBRL(cpIc))}
     ${fvRow(fmtPctFromRatio(kpi.convPageTotal), 'Vendas principal', fmtNum(kpi.principalSales), 'CPA princ. · ' + fmtFunnelCostBRL(cpaPrinc) + '<br><span style="opacity:.88;font-size:10px;">CPA Meta · ' + fmtFunnelCostBRL(cpaMeta) + '</span>')}
-    ${fvRow(fmtPct(pctOb), 'Vendas OB (OB1+OB2)', fmtNum(obTotal), '—')}
+    ${fvRow(fmtPct(pctOb), 'Vendas OB (OB1+OB2)', obValHtml, '—')}
     ${fvRow(roasLeft, 'Faturamento liquido', fmtBRL(kpi.totalRevenue), 'CAC · ' + fmtFunnelCostBRL(kpi.totalSales > 0 ? kpi.cacGeral : null))}
   `;
 }
@@ -1428,6 +1540,7 @@ function renderTableCampaign(byCampaign) {
   const totalPrinc = withSpend.reduce((s, c) => s + (c.salesPrincipal || 0), 0);
   const totalOB1 = withSpend.reduce((s, c) => s + (c.salesOB1 || 0), 0);
   const totalOB2 = withSpend.reduce((s, c) => s + (c.salesOB2 || 0), 0);
+  const totalUpsell = withSpend.reduce((s, c) => s + (c.salesUpsell || 0), 0);
   const totalRev = withSpend.reduce((s, c) => s + c.revenue, 0);
   const totalProfit = totalRev - totalSpend;
   const topC = withSpend.find(c => c.sales > 0);
@@ -1441,33 +1554,33 @@ function renderTableCampaign(byCampaign) {
       : `Campanha ${topC.name} concentra volume (${fmtNum(topC.sales)} vendas).`)
     : 'Nenhuma venda atribuida a campanhas.';
   const thCpa = `<th class="r"><span class="th-stack"><span>CPA princ.</span><span class="th-sub">invest / vendas princ.</span></span></th>`;
-  const thead = `<tr><th>Campanha</th><th class="r">V. total</th><th class="r">Princ.</th><th class="r">OB1</th><th class="r">OB2</th><th class="r">Invest.</th><th class="r">Fat.</th><th class="r">Lucro</th>${thCpa}<th class="r">ROAS</th><th>Status</th></tr>`;
+  const thead = `<tr><th>Campanha</th><th class="r">V. total</th><th class="r">Princ.</th><th class="r">OB1</th><th class="r">OB2</th><th class="r">Upsell</th><th class="r">Invest.</th><th class="r">Fat.</th><th class="r">Lucro</th>${thCpa}<th class="r">ROAS</th><th>Status</th></tr>`;
   const rows = withSpend.map(c => {
     const r = c.spend > 0 ? c.revenue / c.spend : null;
     const lucro = c.revenue - c.spend;
     const lucroClass = lucro >= 0 ? 'up' : 'down';
     const cpaP = (c.salesPrincipal || 0) > 0 ? c.spend / c.salesPrincipal : null;
-    return `<tr><td>${esc(c.name)}</td><td class="r">${fmtNum(c.sales)}</td><td class="r">${fmtNum(c.salesPrincipal)}</td><td class="r">${fmtNum(c.salesOB1)}</td><td class="r">${fmtNum(c.salesOB2)}</td><td class="r">${fmtBRL(c.spend)}</td><td class="r">${fmtBRL(c.revenue)}</td><td class="r ${lucroClass}">${fmtBRL(lucro)}</td><td class="r">${cpaP != null ? fmtBRL(cpaP) : '—'}</td><td class="r" style="color:${roasColor(r)}">${r != null ? r.toFixed(2) : '—'}</td><td>${roasBadge(r)}</td></tr>`;
+    return `<tr><td>${esc(c.name)}</td><td class="r">${fmtNum(c.sales)}</td><td class="r">${fmtNum(c.salesPrincipal)}</td><td class="r">${fmtNum(c.salesOB1)}</td><td class="r">${fmtNum(c.salesOB2)}</td><td class="r">${fmtNum(c.salesUpsell)}</td><td class="r">${fmtBRL(c.spend)}</td><td class="r">${fmtBRL(c.revenue)}</td><td class="r ${lucroClass}">${fmtBRL(lucro)}</td><td class="r">${cpaP != null ? fmtBRL(cpaP) : '—'}</td><td class="r" style="color:${roasColor(r)}">${r != null ? r.toFixed(2) : '—'}</td><td>${roasBadge(r)}</td></tr>`;
   }).join('');
   const totalRoas = totalSpend > 0 ? totalRev / totalSpend : null;
   const profitClass = totalProfit >= 0 ? 'up' : 'down';
   const totalCpaP = totalPrinc > 0 ? totalSpend / totalPrinc : null;
-  const totalRow = `<tr class="total"><td>Total (com invest.)</td><td class="r">${fmtNum(totalSales)}</td><td class="r">${fmtNum(totalPrinc)}</td><td class="r">${fmtNum(totalOB1)}</td><td class="r">${fmtNum(totalOB2)}</td><td class="r">${fmtBRL(totalSpend)}</td><td class="r">${fmtBRL(totalRev)}</td><td class="r ${profitClass}">${fmtBRL(totalProfit)}</td><td class="r">${totalCpaP != null ? fmtBRL(totalCpaP) : '—'}</td><td class="r" style="color:${roasColor(totalRoas)}">${totalRoas != null ? totalRoas.toFixed(2) : '—'}</td><td></td></tr>`;
+  const totalRow = `<tr class="total"><td>Total (com invest.)</td><td class="r">${fmtNum(totalSales)}</td><td class="r">${fmtNum(totalPrinc)}</td><td class="r">${fmtNum(totalOB1)}</td><td class="r">${fmtNum(totalOB2)}</td><td class="r">${fmtNum(totalUpsell)}</td><td class="r">${fmtBRL(totalSpend)}</td><td class="r">${fmtBRL(totalRev)}</td><td class="r ${profitClass}">${fmtBRL(totalProfit)}</td><td class="r">${totalCpaP != null ? fmtBRL(totalCpaP) : '—'}</td><td class="r" style="color:${roasColor(totalRoas)}">${totalRoas != null ? totalRoas.toFixed(2) : '—'}</td><td></td></tr>`;
   $('tableCampaign').innerHTML = `<thead>${thead}</thead><tbody>${rows}${totalRow}</tbody>`;
 }
 
 function renderTableAdset(byAdset) {
   const thCpa = `<th class="r"><span class="th-stack"><span>CPA princ.</span><span class="th-sub">invest / vendas princ.</span></span></th>`;
-  const thead = `<tr><th>Conjunto</th><th class="r">V. total</th><th class="r">Princ.</th><th class="r">OB1</th><th class="r">OB2</th><th class="r">Invest.</th><th class="r">Fat.</th><th class="r">Lucro</th>${thCpa}<th class="r">ROAS</th><th>Status</th></tr>`;
+  const thead = `<tr><th>Conjunto</th><th class="r">V. total</th><th class="r">Princ.</th><th class="r">OB1</th><th class="r">OB2</th><th class="r">Upsell</th><th class="r">Invest.</th><th class="r">Fat.</th><th class="r">Lucro</th>${thCpa}<th class="r">ROAS</th><th>Status</th></tr>`;
   if (!byAdset.length) {
     $('adsetInsight').textContent = '';
-    $('tableAdset').innerHTML = `<thead>${thead}</thead><tbody><tr><td colspan="11">Nenhuma linha Meta com <strong>adset_name</strong> no periodo filtrado.</td></tr></tbody>`;
+    $('tableAdset').innerHTML = `<thead>${thead}</thead><tbody><tr><td colspan="12">Nenhuma linha Meta com <strong>adset_name</strong> no periodo filtrado.</td></tr></tbody>`;
     return;
   }
   const withSpend = byAdset.filter(c => c.spend > 0);
   if (!withSpend.length) {
     $('adsetInsight').textContent = 'Conjuntos encontrados na Meta sem investimento no periodo.';
-    $('tableAdset').innerHTML = `<thead>${thead}</thead><tbody><tr><td colspan="11">Sem investimento para listar.</td></tr></tbody>`;
+    $('tableAdset').innerHTML = `<thead>${thead}</thead><tbody><tr><td colspan="12">Sem investimento para listar.</td></tr></tbody>`;
     return;
   }
   const totalSpend = withSpend.reduce((s, c) => s + c.spend, 0);
@@ -1475,6 +1588,7 @@ function renderTableAdset(byAdset) {
   const totalPrinc = withSpend.reduce((s, c) => s + (c.salesPrincipal || 0), 0);
   const totalOB1 = withSpend.reduce((s, c) => s + (c.salesOB1 || 0), 0);
   const totalOB2 = withSpend.reduce((s, c) => s + (c.salesOB2 || 0), 0);
+  const totalUpsell = withSpend.reduce((s, c) => s + (c.salesUpsell || 0), 0);
   const totalRev = withSpend.reduce((s, c) => s + c.revenue, 0);
   const totalProfit = totalRev - totalSpend;
   const topC = withSpend.find(c => c.sales > 0);
@@ -1484,12 +1598,12 @@ function renderTableAdset(byAdset) {
     const lucro = c.revenue - c.spend;
     const lucroClass = lucro >= 0 ? 'up' : 'down';
     const cpaP = (c.salesPrincipal || 0) > 0 ? c.spend / c.salesPrincipal : null;
-    return `<tr><td>${esc(c.name)}</td><td class="r">${fmtNum(c.sales)}</td><td class="r">${fmtNum(c.salesPrincipal)}</td><td class="r">${fmtNum(c.salesOB1)}</td><td class="r">${fmtNum(c.salesOB2)}</td><td class="r">${fmtBRL(c.spend)}</td><td class="r">${fmtBRL(c.revenue)}</td><td class="r ${lucroClass}">${fmtBRL(lucro)}</td><td class="r">${cpaP != null ? fmtBRL(cpaP) : '—'}</td><td class="r" style="color:${roasColor(r)}">${r != null ? r.toFixed(2) : '—'}</td><td>${roasBadge(r)}</td></tr>`;
+    return `<tr><td>${esc(c.name)}</td><td class="r">${fmtNum(c.sales)}</td><td class="r">${fmtNum(c.salesPrincipal)}</td><td class="r">${fmtNum(c.salesOB1)}</td><td class="r">${fmtNum(c.salesOB2)}</td><td class="r">${fmtNum(c.salesUpsell)}</td><td class="r">${fmtBRL(c.spend)}</td><td class="r">${fmtBRL(c.revenue)}</td><td class="r ${lucroClass}">${fmtBRL(lucro)}</td><td class="r">${cpaP != null ? fmtBRL(cpaP) : '—'}</td><td class="r" style="color:${roasColor(r)}">${r != null ? r.toFixed(2) : '—'}</td><td>${roasBadge(r)}</td></tr>`;
   }).join('');
   const totalRoas = totalSpend > 0 ? totalRev / totalSpend : null;
   const profitClass = totalProfit >= 0 ? 'up' : 'down';
   const totalCpaP = totalPrinc > 0 ? totalSpend / totalPrinc : null;
-  const totalRow = `<tr class="total"><td>Total (com invest.)</td><td class="r">${fmtNum(totalSales)}</td><td class="r">${fmtNum(totalPrinc)}</td><td class="r">${fmtNum(totalOB1)}</td><td class="r">${fmtNum(totalOB2)}</td><td class="r">${fmtBRL(totalSpend)}</td><td class="r">${fmtBRL(totalRev)}</td><td class="r ${profitClass}">${fmtBRL(totalProfit)}</td><td class="r">${totalCpaP != null ? fmtBRL(totalCpaP) : '—'}</td><td class="r" style="color:${roasColor(totalRoas)}">${totalRoas != null ? totalRoas.toFixed(2) : '—'}</td><td></td></tr>`;
+  const totalRow = `<tr class="total"><td>Total (com invest.)</td><td class="r">${fmtNum(totalSales)}</td><td class="r">${fmtNum(totalPrinc)}</td><td class="r">${fmtNum(totalOB1)}</td><td class="r">${fmtNum(totalOB2)}</td><td class="r">${fmtNum(totalUpsell)}</td><td class="r">${fmtBRL(totalSpend)}</td><td class="r">${fmtBRL(totalRev)}</td><td class="r ${profitClass}">${fmtBRL(totalProfit)}</td><td class="r">${totalCpaP != null ? fmtBRL(totalCpaP) : '—'}</td><td class="r" style="color:${roasColor(totalRoas)}">${totalRoas != null ? totalRoas.toFixed(2) : '—'}</td><td></td></tr>`;
   $('tableAdset').innerHTML = `<thead>${thead}</thead><tbody>${rows}${totalRow}</tbody>`;
 }
 
@@ -1499,13 +1613,13 @@ function renderTableCreative(byCreative) {
   $('creativeInsight').textContent = top && top.sales > 0
     ? `${top.name} lidera com ${fmtNum(top.sales)} vendas totais (${fmtNum(top.salesPrincipal || 0)} principal).`
     : 'Match por criativo requer metodo "nome".';
-  const thead = `<tr><th>Anuncio</th><th class="r">V. total</th><th class="r">Princ.</th><th class="r">OB1</th><th class="r">OB2</th><th class="r">Invest.</th><th class="r">Lucro</th>${thCpa}<th class="r">ROAS</th></tr>`;
+  const thead = `<tr><th>Anuncio</th><th class="r">V. total</th><th class="r">Princ.</th><th class="r">OB1</th><th class="r">OB2</th><th class="r">Upsell</th><th class="r">Invest.</th><th class="r">Lucro</th>${thCpa}<th class="r">ROAS</th></tr>`;
   const rows = byCreative.map(a => {
     const cpaP = (a.salesPrincipal || 0) > 0 ? a.spend / a.salesPrincipal : null;
     const roas = a.spend > 0 ? a.revenue / a.spend : null;
     const lucro = a.revenue - a.spend;
     const lucroClass = lucro >= 0 ? 'up' : 'down';
-    return `<tr><td>${esc(a.name)}</td><td class="r">${fmtNum(a.sales)}</td><td class="r">${fmtNum(a.salesPrincipal)}</td><td class="r">${fmtNum(a.salesOB1)}</td><td class="r">${fmtNum(a.salesOB2)}</td><td class="r">${fmtBRL(a.spend)}</td><td class="r ${lucroClass}">${fmtBRL(lucro)}</td><td class="r">${cpaP != null ? fmtBRL(cpaP) : '—'}</td><td class="r" style="color:${roasColor(roas)}">${roas != null ? roas.toFixed(2) : '—'}</td></tr>`;
+    return `<tr><td>${esc(a.name)}</td><td class="r">${fmtNum(a.sales)}</td><td class="r">${fmtNum(a.salesPrincipal)}</td><td class="r">${fmtNum(a.salesOB1)}</td><td class="r">${fmtNum(a.salesOB2)}</td><td class="r">${fmtNum(a.salesUpsell)}</td><td class="r">${fmtBRL(a.spend)}</td><td class="r ${lucroClass}">${fmtBRL(lucro)}</td><td class="r">${cpaP != null ? fmtBRL(cpaP) : '—'}</td><td class="r" style="color:${roasColor(roas)}">${roas != null ? roas.toFixed(2) : '—'}</td></tr>`;
   }).join('');
   $('tableCreative').innerHTML = `<thead>${thead}</thead><tbody>${rows}</tbody>`;
 }
@@ -1872,10 +1986,14 @@ async function loadAndRender() {
     saveConfig(finalCfg);
     const finalData = processData(rawVendas, rawMeta, finalCfg);
 
+    const mtd = getMonthToDateBoundsISO();
+    const monthCfg = { ...finalCfg, dateFrom: mtd.from, dateTo: mtd.to };
+    const kpiMonth = processData(rawVendas, rawMeta, monthCfg).kpi;
+
     enrichDayWithOfferSales(finalData.byDay, finalData.vendas, finalCfg.offerMap);
 
-    renderKPIs(finalData.kpi);
-    renderFunnelKPIs(finalData.kpi);
+    renderKPIs(finalData.kpi, kpiMonth, mtd.labelShort);
+    renderFunnelKPIs(finalData.kpi, kpiMonth, mtd.labelShort);
     renderFunnelVisual(finalData.kpi);
     renderCharts(finalData.byDay, finalData.kpi);
     renderTableOffer(finalData.byOffer, finalData.kpi);
@@ -1923,9 +2041,12 @@ async function refresh() {
   $('filterDateFrom').value = cfg.dateFrom;
   $('filterDateTo').value = cfg.dateTo;
   const finalData = processData(window._rawVendas, window._rawMeta, cfg);
+  const mtd = getMonthToDateBoundsISO();
+  const monthCfg = { ...cfg, dateFrom: mtd.from, dateTo: mtd.to };
+  const kpiMonth = processData(window._rawVendas, window._rawMeta, monthCfg).kpi;
   enrichDayWithOfferSales(finalData.byDay, finalData.vendas, cfg.offerMap);
-  renderKPIs(finalData.kpi);
-  renderFunnelKPIs(finalData.kpi);
+  renderKPIs(finalData.kpi, kpiMonth, mtd.labelShort);
+  renderFunnelKPIs(finalData.kpi, kpiMonth, mtd.labelShort);
   renderFunnelVisual(finalData.kpi);
   renderCharts(finalData.byDay, finalData.kpi);
   renderTableOffer(finalData.byOffer, finalData.kpi);
