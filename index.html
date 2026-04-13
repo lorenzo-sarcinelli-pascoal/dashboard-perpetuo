@@ -452,6 +452,12 @@
     <button class="quick-btn" id="btnThisMonth">Este mes</button>
     <div class="filter-sep"></div>
     <button class="quick-btn" id="btnClearFilter" style="color:var(--danger);">Limpar</button>
+    <div class="filter-sep"></div>
+    <label style="font-size:12px;color:var(--muted);margin:0 4px 0 0;font-weight:700;">Imposto</label>
+    <label style="font-size:12px;color:var(--major-01);display:inline-flex;align-items:center;gap:6px;cursor:pointer;margin:0;">
+      <input type="checkbox" id="filterTrafficTax" />
+      Com imposto (×1,1215)
+    </label>
   </div>
 
   <!-- INSIGHTS BAR -->
@@ -616,6 +622,8 @@ if (typeof Chart !== 'undefined' && typeof ChartDataLabels !== 'undefined') {
    CONFIG MODULE
    ============================================================ */
 const STORAGE_KEY = 'the_perpetuo_dashboard_config';
+/** Multiplicador no investimento Meta (ex.: imposto/IOF sobre trafego). */
+const META_SPEND_TAX_MULTIPLIER = 1.1215;
 const OFFER_CATEGORIES = ['Produto Principal','Order Bump 1','Order Bump 2','Upsell','Ignorar'];
 const DEFAULT_OFFER_MAP = {
   'Casa Leve 60': 'Produto Principal',
@@ -647,7 +655,8 @@ function getConfig() {
     dateTo: saved.dateTo || '',
     statusFilter: saved.statusFilter || 'paid',
     insightsTargetType: saved.insightsTargetType || 'lucro',
-    insightsTargetValue: saved.insightsTargetValue || '10000'
+    insightsTargetValue: saved.insightsTargetValue || '10000',
+    includeTrafficTax: saved.includeTrafficTax === true
   };
 }
 
@@ -667,6 +676,8 @@ function populateConfigUI(cfg) {
   toggleNameFields();
   $('insightsTargetType').value = cfg.insightsTargetType || 'lucro';
   $('insightsTargetValue').value = cfg.insightsTargetValue || '10000';
+  const ft = $('filterTrafficTax');
+  if (ft) ft.checked = !!cfg.includeTrafficTax;
 }
 
 function readConfigFromUI() {
@@ -685,7 +696,8 @@ function readConfigFromUI() {
     dateTo: $('cfgDateTo').value,
     statusFilter: $('cfgStatus').value,
     insightsTargetType: $('insightsTargetType').value,
-    insightsTargetValue: $('insightsTargetValue').value
+    insightsTargetValue: $('insightsTargetValue').value,
+    includeTrafficTax: $('filterTrafficTax') ? $('filterTrafficTax').checked : false
   };
 }
 
@@ -832,6 +844,11 @@ function processData(rawVendas, rawMeta, cfg) {
 
   if (cfg.dateFrom) meta = meta.filter(m => !m._date || m._date >= cfg.dateFrom);
   if (cfg.dateTo) meta = meta.filter(m => !m._date || m._date <= cfg.dateTo);
+
+  const spendMult = cfg.includeTrafficTax ? META_SPEND_TAX_MULTIPLIER : 1;
+  if (spendMult !== 1) {
+    meta = meta.map(m => ({ ...m, _spend: m._spend * spendMult }));
+  }
 
   const offerNames = [...new Set(vendas.map(v => String(v.offer_name || v.product_name || '').trim()).filter(Boolean))];
 
@@ -1213,7 +1230,7 @@ function kpiVsMonthLine(kpiMonth, label, innerHtml, mode) {
 }
 
 /** Referencia = media diaria do MTD (1–hoje) x dias do filtro; taxas agregadas do mes sem prorata. */
-function renderKPIs(kpi, kpiMonth, monthLabel, nDaysMTD, nDaysFilter) {
+function renderKPIs(kpi, kpiMonth, monthLabel, nDaysMTD, nDaysFilter, includeTrafficTax) {
   const M = kpiMonth || null;
   const L = monthLabel || '';
   const nM = Math.max(1, nDaysMTD | 0);
@@ -1223,6 +1240,7 @@ function renderKPIs(kpi, kpiMonth, monthLabel, nDaysMTD, nDaysFilter) {
     return (val / nM) * nF;
   };
   const vs = inner => kpiVsMonthLine(M, L, inner, 'kpi');
+  const investDelta = 'Meta Ads' + (includeTrafficTax ? ' · Inclui ajuste imposto trafego (×' + META_SPEND_TAX_MULTIPLIER + ')' : '');
 
   const semaforoColor = kpi.roas == null ? 'var(--muted)' : kpi.roas >= 1.5 ? 'var(--success)' : kpi.roas >= 1.0 ? 'var(--warning)' : 'var(--danger)';
   const semaforoText = kpi.roas == null ? '—' : kpi.roas >= 1.5 ? 'Saudavel' : kpi.roas >= 1.0 ? 'Atencao' : 'Critico';
@@ -1232,7 +1250,7 @@ function renderKPIs(kpi, kpiMonth, monthLabel, nDaysMTD, nDaysFilter) {
 
   $('kpiGrid4').innerHTML = `
     <article class="card"><div class="kpi-label">Faturamento liquido</div><div class="kpi-value">${fmtBRL(kpi.totalRevenue)}</div><div class="delta">${fmtNum(kpi.totalSales)} vendas · Taxa plat.: ${fmtBRL(kpi.totalPlatformFee)}</div>${vs(kpiCmpMoney(kpi.totalRevenue, pr(M?.totalRevenue), false, false))}</article>
-    <article class="card"><div class="kpi-label">Investimento do periodo</div><div class="kpi-value">${fmtBRL(kpi.totalSpend)}</div><div class="delta">Meta Ads</div>${vs(kpiCmpMoney(kpi.totalSpend, pr(M?.totalSpend), false, true))}</article>
+    <article class="card"><div class="kpi-label">Investimento do periodo</div><div class="kpi-value">${fmtBRL(kpi.totalSpend)}</div><div class="delta">${investDelta}</div>${vs(kpiCmpMoney(kpi.totalSpend, pr(M?.totalSpend), false, true))}</article>
     <article class="card"><div class="kpi-label">ROAS</div><div class="kpi-value" style="color:${roasClr}">${kpi.roas != null ? kpi.roas.toFixed(2) : '—'}</div><div class="delta">Faturamento / Investimento</div>${vs(kpiCmpRoas(kpi.roas, M ? M.roas : null))}</article>
     <article class="card"><div class="kpi-label">Lucro</div><div class="kpi-value ${profitClass}">${fmtBRL(kpi.profit)}</div><div class="delta ${profitClass}">${kpi.profit >= 0 ? 'Positivo' : 'Negativo'}</div>${vs(kpiCmpMoney(kpi.profit, pr(M?.profit), false, false))}</article>
     <article class="card"><div class="kpi-label">Semaforo</div><div class="kpi-value kpi-sm" style="color:${semaforoColor}">${semaforoText}</div><div class="delta ${semaforoClass}">${kpi.roas != null ? 'ROAS ' + kpi.roas.toFixed(2) : 'Sem dados de investimento'}</div>${vs(kpiCmpRoas(kpi.roas, M ? M.roas : null))}</article>
@@ -1296,7 +1314,7 @@ function renderFunnelKPIs(kpi, kpiMonth, monthLabel) {
   `;
 }
 
-function renderFunnelVisual(kpi) {
+function renderFunnelVisual(kpi, includeTrafficTax) {
   const mount = $('funnelVisualMount');
   if (!mount) return;
 
@@ -1321,8 +1339,9 @@ function renderFunnelVisual(kpi) {
 
   const roasLeft = kpi.roas != null && isFinite(kpi.roas) ? 'ROAS ' + kpi.roas.toFixed(2) : '—';
 
+  const taxNote = includeTrafficTax ? ' Investimento Meta com ajuste imposto trafego (×' + META_SPEND_TAX_MULTIPLIER + ').' : '';
   mount.innerHTML = `
-    <p class="funnel-viz-note">Investimento e volumes do periodo (planilha Meta + vendas). Custos: spend Meta / volume da etapa. CPA = invest / vendas principal (Meta ou total).</p>
+    <p class="funnel-viz-note">Investimento e volumes do periodo (planilha Meta + vendas). Custos: spend Meta / volume da etapa. CPA = invest / vendas principal (Meta ou total).${taxNote}</p>
     <div class="funnel-viz-row fv-head"><div class="fv-left">Taxa</div><div class="fv-main" style="text-align:center">Etapa</div><div class="fv-right">Custo</div></div>
     <div class="funnel-viz-row fv-invest">
       <div class="fv-left">—</div>
@@ -2023,9 +2042,9 @@ async function loadAndRender() {
 
     enrichDayWithOfferSales(finalData.byDay, finalData.vendas, finalCfg.offerMap);
 
-    renderKPIs(finalData.kpi, kpiMonth, mtd.labelShort, nDaysMTD, nDaysFilter);
+    renderKPIs(finalData.kpi, kpiMonth, mtd.labelShort, nDaysMTD, nDaysFilter, !!finalCfg.includeTrafficTax);
     renderFunnelKPIs(finalData.kpi, kpiMonth, mtd.labelShort);
-    renderFunnelVisual(finalData.kpi);
+    renderFunnelVisual(finalData.kpi, !!finalCfg.includeTrafficTax);
     renderCharts(finalData.byDay, finalData.kpi);
     renderTableOffer(finalData.byOffer, finalData.kpi);
     renderTableCampaign(finalData.byCampaign);
@@ -2078,9 +2097,9 @@ async function refresh() {
   const nDaysMTD = inclusiveCalendarDaysISO(mtd.from, mtd.to);
   const nDaysFilter = filterPeriodDayCount(cfg, finalData.byDay);
   enrichDayWithOfferSales(finalData.byDay, finalData.vendas, cfg.offerMap);
-  renderKPIs(finalData.kpi, kpiMonth, mtd.labelShort, nDaysMTD, nDaysFilter);
+  renderKPIs(finalData.kpi, kpiMonth, mtd.labelShort, nDaysMTD, nDaysFilter, !!cfg.includeTrafficTax);
   renderFunnelKPIs(finalData.kpi, kpiMonth, mtd.labelShort);
-  renderFunnelVisual(finalData.kpi);
+  renderFunnelVisual(finalData.kpi, !!cfg.includeTrafficTax);
   renderCharts(finalData.byDay, finalData.kpi);
   renderTableOffer(finalData.byOffer, finalData.kpi);
   renderTableCampaign(finalData.byCampaign);
@@ -2150,6 +2169,7 @@ document.addEventListener('DOMContentLoaded', () => {
   populateConfigUI(cfg);
   $('filterDateFrom').value = cfg.dateFrom;
   $('filterDateTo').value = cfg.dateTo;
+  if ($('filterTrafficTax')) $('filterTrafficTax').checked = !!cfg.includeTrafficTax;
 
   $('configToggle').addEventListener('click', () => $('configPanel').classList.toggle('open'));
   $('cfgMatchMethod').addEventListener('change', toggleNameFields);
@@ -2183,6 +2203,12 @@ document.addEventListener('DOMContentLoaded', () => {
     clearQuickActive();
     $('cfgDateTo').value = $('filterDateTo').value;
     refresh();
+  });
+
+  $('filterTrafficTax').addEventListener('change', () => {
+    const c = readConfigFromUI();
+    saveConfig(c);
+    if (window._rawVendas) refresh();
   });
 
   /* Insights bar */
