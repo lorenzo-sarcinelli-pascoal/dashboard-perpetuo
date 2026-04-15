@@ -1242,9 +1242,14 @@ function renderKPIs(kpi, kpiMonth, monthLabel, nDaysMTD, nDaysFilter, includeTra
   const vs = inner => kpiVsMonthLine(M, L, inner, 'kpi');
   const investDelta = 'Meta Ads' + (includeTrafficTax ? ' · Inclui ajuste imposto trafego (×' + META_SPEND_TAX_MULTIPLIER + ')' : '');
 
-  const semaforoColor = kpi.roas == null ? 'var(--muted)' : kpi.roas >= 1.5 ? 'var(--success)' : kpi.roas >= 1.0 ? 'var(--warning)' : 'var(--danger)';
-  const semaforoText = kpi.roas == null ? '—' : kpi.roas >= 1.5 ? 'Saudavel' : kpi.roas >= 1.0 ? 'Atencao' : 'Critico';
-  const semaforoClass = kpi.roas == null ? '' : kpi.roas >= 1.5 ? 'up' : kpi.roas >= 1.0 ? 'warn' : 'down';
+  const rSema = kpi.roas;
+  let semaforoText, semaforoClass;
+  if (rSema == null) { semaforoText = '—'; semaforoClass = ''; }
+  else if (rSema >= 2) { semaforoText = 'Gostosin'; semaforoClass = 'up'; }
+  else if (rSema >= 1.5) { semaforoText = 'TOP'; semaforoClass = 'up'; }
+  else if (rSema >= 1.0) { semaforoText = 'Marromenos'; semaforoClass = 'warn'; }
+  else { semaforoText = 'Zicou'; semaforoClass = 'down'; }
+  const semaforoColor = rSema == null ? 'var(--muted)' : roasColor(rSema);
   const profitClass = kpi.profit >= 0 ? 'up' : 'down';
   const roasClr = roasColor(kpi.roas);
 
