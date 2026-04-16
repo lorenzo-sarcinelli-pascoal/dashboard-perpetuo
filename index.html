@@ -1289,6 +1289,8 @@ function renderKPIs(kpi, kpiMonth, monthLabel, nDaysMTD, nDaysFilter, includeTra
 
   $('kpiGrid6').innerHTML = `
     <article class="card"><div class="kpi-label">Vendas Principal</div><div class="kpi-value kpi-sm">${fmtNum(kpi.principalSales)}</div><div class="delta">Produto principal</div>${vs(kpiCmpCount(kpi.principalSales, pr(M?.principalSales)))}</article>
+    <article class="card"><div class="kpi-label">CPA Principal</div><div class="kpi-value kpi-sm">${fmtBRL(kpi.cpaPrincipal)}</div><div class="delta">Invest / ${fmtNum(kpi.principalSales)} vendas princ.</div>${vs(kpiCmpMoney(kpi.cpaPrincipal, M ? M.cpaPrincipal : null, true, false))}</article>
+    <article class="card"><div class="kpi-label">CPA Princ. Meta Ads</div><div class="kpi-value kpi-sm">${fmtBRL(kpi.cpaPrincipalMeta)}</div><div class="delta">Invest / ${fmtNum(kpi.principalSalesMetaAds)} vendas Meta</div>${vs(kpiCmpMoney(kpi.cpaPrincipalMeta, M ? M.cpaPrincipalMeta : null, true, false))}</article>
     <article class="card"><div class="kpi-label">Taxa reembolso Principal</div><div class="kpi-value kpi-sm">${fmtPct(kpi.refundRatePrincipal)}</div><div class="delta">Refunded / principal (paid+venda+refunded) · ${fmtNum(kpi.principalRefundedCount || 0)}/${fmtNum(kpi.principalRefundDenominator || 0)}</div>${vs(kpiCmpPPLowerIsBetter(kpi.refundRatePrincipal, M ? M.refundRatePrincipal : null))}</article>
     <article class="card"><div class="kpi-label">Valor reembolsos (total)</div><div class="kpi-value kpi-sm">${fmtBRL(kpi.totalRefundValue)}</div><div class="delta">Todas as vendas refunded no periodo (preco pago)</div>${vs(kpiCmpMoney(kpi.totalRefundValue, pr(M?.totalRefundValue), true, false))}</article>
     <article class="card"><div class="kpi-label">Vendas Meta Ads</div><div class="kpi-value kpi-sm">${fmtNum(kpi.salesMetaAds)}</div><div class="delta">Trafego pago</div>${vs(kpiCmpCount(kpi.salesMetaAds, pr(M?.salesMetaAds)))}</article>
@@ -1300,9 +1302,6 @@ function renderKPIs(kpi, kpiMonth, monthLabel, nDaysMTD, nDaysFilter, includeTra
     <article class="card"><div class="kpi-label">Take rate OB2</div><div class="kpi-value kpi-sm">${fmtPct(kpi.takeRateOB2)}</div><div class="delta">OB2 / Principal</div>${vs(kpiCmpPP(kpi.takeRateOB2, M ? M.takeRateOB2 : null))}</article>
     <article class="card"><div class="kpi-label">Take rate Upsell</div><div class="kpi-value kpi-sm">${fmtPct(kpi.takeRateUpsell)}</div><div class="delta">Upsell / Principal</div>${vs(kpiCmpPP(kpi.takeRateUpsell, M ? M.takeRateUpsell : null))}</article>
     <article class="card"><div class="kpi-label">Ticket Medio</div><div class="kpi-value kpi-sm">${fmtBRL(kpi.ticketMedio)}</div><div class="delta">Fat. / ${fmtNum(kpi.principalSales)} vendas princ.</div>${vs(kpiCmpMoney(kpi.ticketMedio, M ? M.ticketMedio : null, false, false))}</article>
-    <article class="card"><div class="kpi-label">CAC geral</div><div class="kpi-value kpi-sm">${fmtBRL(kpi.cacGeral)}</div><div class="delta">Invest / vendas totais</div>${vs(kpiCmpMoney(kpi.cacGeral, M ? M.cacGeral : null, true, false))}</article>
-    <article class="card"><div class="kpi-label">CPA Principal</div><div class="kpi-value kpi-sm">${fmtBRL(kpi.cpaPrincipal)}</div><div class="delta">Invest / ${fmtNum(kpi.principalSales)} vendas princ.</div>${vs(kpiCmpMoney(kpi.cpaPrincipal, M ? M.cpaPrincipal : null, true, false))}</article>
-    <article class="card"><div class="kpi-label">CPA Princ. Meta Ads</div><div class="kpi-value kpi-sm">${fmtBRL(kpi.cpaPrincipalMeta)}</div><div class="delta">Invest / ${fmtNum(kpi.principalSalesMetaAds)} vendas Meta</div>${vs(kpiCmpMoney(kpi.cpaPrincipalMeta, M ? M.cpaPrincipalMeta : null, true, false))}</article>
   `;
 }
 
