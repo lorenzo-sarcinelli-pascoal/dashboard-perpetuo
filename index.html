@@ -646,11 +646,11 @@ function getConfig() {
     vendasSheet: saved.vendasSheet || 'vendas CORRETA retroativada',
     metaSheet: saved.metaSheet || 'metaads_daily',
     clientName: saved.clientName || 'Organize Com a Ju',
-    matchMethod: saved.matchMethod || 'campaign_id',
+    matchMethod: saved.matchMethod === 'campaign_id' ? 'campaign_id' : 'name',
     utmCampaign: saved.utmCampaign || 'utm_campaign',
     utmAdset: saved.utmAdset || 'utm_medium',
     utmAd: saved.utmAd || 'utm_content',
-    offerMap: saved.offerMap || { ...DEFAULT_OFFER_MAP },
+    offerMap: { ...DEFAULT_OFFER_MAP, ...(saved.offerMap || {}) },
     dateFrom: saved.dateFrom || '',
     dateTo: saved.dateTo || '',
     statusFilter: saved.statusFilter || 'paid',
@@ -702,9 +702,10 @@ function readConfigFromUI() {
 }
 
 function readOfferMap() {
+  const base = { ...DEFAULT_OFFER_MAP, ...(loadConfig().offerMap || {}) };
   const rows = $('offerTableBody').querySelectorAll('tr');
-  if (!rows.length) return loadConfig().offerMap || { ...DEFAULT_OFFER_MAP };
-  const map = {};
+  if (!rows.length) return base;
+  const map = { ...base };
   rows.forEach(r => {
     const name = r.dataset.offer;
     const sel = r.querySelector('select');
@@ -821,12 +822,27 @@ function processData(rawVendas, rawMeta, cfg) {
     if (!v._source || v._source === '') v._source = 'desconhecido';
   });
 
+  if (cfg.dateFrom) vendas = vendas.filter(v => !v._date || v._date >= cfg.dateFrom);
+  if (cfg.dateTo) vendas = vendas.filter(v => !v._date || v._date <= cfg.dateTo);
+
+  const offerMapForRefund = cfg.offerMap || {};
+  function categoryOfOffer(v) {
+    const name = String(v.offer_name || v.product_name || '').trim();
+    return offerMapForRefund[name] || 'Produto Principal';
+  }
+  const principalPaidVendaOrRefunded = vendas.filter(v => {
+    if (categoryOfOffer(v) !== 'Produto Principal') return false;
+    return v._status === 'paid' || v._status === 'venda' || v._status === 'refunded';
+  });
+  const principalRefundedCount = principalPaidVendaOrRefunded.filter(v => v._status === 'refunded').length;
+  const principalRefundDenominator = principalPaidVendaOrRefunded.length;
+  const refundRatePrincipal = principalRefundDenominator > 0 ? principalRefundedCount / principalRefundDenominator : null;
+  const totalRefundValue = vendas.filter(v => v._status === 'refunded')
+    .reduce((s, v) => s + Math.abs(v._price || 0), 0);
+
   if (cfg.statusFilter === 'paid') {
     vendas = vendas.filter(v => v._status === 'paid' || v._status === 'venda');
   }
-
-  if (cfg.dateFrom) vendas = vendas.filter(v => !v._date || v._date >= cfg.dateFrom);
-  if (cfg.dateTo) vendas = vendas.filter(v => !v._date || v._date <= cfg.dateTo);
 
   let meta = rawMeta.map(m => ({
     ...m,
@@ -919,6 +935,7 @@ function processData(rawVendas, rawMeta, cfg) {
     vendas, meta, offerNames,
     kpi: {
       totalRevenue, totalSpend, totalPlatformFee, roas, profit, totalSales, principalSales, ob1Sales, ob2Sales, upsellSales, upsellRevenue, takeRateOB1, takeRateOB2, takeRateUpsell, upsellSalesMetaAds, cacGeral, cpaPrincipal, cpaPrincipalMeta, principalSalesMetaAds, ticketMedio, salesMetaAds, salesOrganic,
+      refundRatePrincipal, totalRefundValue, principalRefundedCount, principalRefundDenominator,
       totalImpressions, totalClicks, totalLpv, totalIc, ctr, connectRate, icPerLpv, convPageMeta, convPageTotal, convCheckoutMeta, convCheckoutTotal
     },
     categorized, byDay, byCampaign, byAdset, byCreative, bySource, byOffer
@@ -1182,6 +1199,15 @@ function kpiCmpPP(curRatio, monRatio) {
   return kpiCmpSpan(t, cls);
 }
 
+/** Diferenca em pp; menor atual vs mes = bom (ex.: taxa de reembolso). */
+function kpiCmpPPLowerIsBetter(curRatio, monRatio) {
+  if (curRatio == null || monRatio == null || isNaN(curRatio) || isNaN(monRatio)) return kpiCmpSpan('—', '');
+  const dpp = (curRatio - monRatio) * 100;
+  const t = (dpp > 0 ? '+' : '') + dpp.toFixed(2).replace('.', ',') + ' pp';
+  const cls = dpp < 0 ? 'up' : dpp > 0 ? 'down' : '';
+  return kpiCmpSpan(t, cls);
+}
+
 function kpiCmpRoas(cur, mon) {
   if (cur == null || mon == null || isNaN(cur) || isNaN(mon)) return kpiCmpSpan('—', '');
   const d = cur - mon;
@@ -1263,6 +1289,8 @@ function renderKPIs(kpi, kpiMonth, monthLabel, nDaysMTD, nDaysFilter, includeTra
 
   $('kpiGrid6').innerHTML = `
     <article class="card"><div class="kpi-label">Vendas Principal</div><div class="kpi-value kpi-sm">${fmtNum(kpi.principalSales)}</div><div class="delta">Produto principal</div>${vs(kpiCmpCount(kpi.principalSales, pr(M?.principalSales)))}</article>
+    <article class="card"><div class="kpi-label">Taxa reembolso Principal</div><div class="kpi-value kpi-sm">${fmtPct(kpi.refundRatePrincipal)}</div><div class="delta">Refunded / principal (paid+venda+refunded) · ${fmtNum(kpi.principalRefundedCount || 0)}/${fmtNum(kpi.principalRefundDenominator || 0)}</div>${vs(kpiCmpPPLowerIsBetter(kpi.refundRatePrincipal, M ? M.refundRatePrincipal : null))}</article>
+    <article class="card"><div class="kpi-label">Valor reembolsos (total)</div><div class="kpi-value kpi-sm">${fmtBRL(kpi.totalRefundValue)}</div><div class="delta">Todas as vendas refunded no periodo (preco pago)</div>${vs(kpiCmpMoney(kpi.totalRefundValue, pr(M?.totalRefundValue), true, false))}</article>
     <article class="card"><div class="kpi-label">Vendas Meta Ads</div><div class="kpi-value kpi-sm">${fmtNum(kpi.salesMetaAds)}</div><div class="delta">Trafego pago</div>${vs(kpiCmpCount(kpi.salesMetaAds, pr(M?.salesMetaAds)))}</article>
     <article class="card"><div class="kpi-label">Vendas Organico</div><div class="kpi-value kpi-sm">${fmtNum(kpi.salesOrganic)}</div><div class="delta">Bio + outros</div>${vs(kpiCmpCount(kpi.salesOrganic, pr(M?.salesOrganic)))}</article>
     <article class="card"><div class="kpi-label">Vendas OB1</div><div class="kpi-value kpi-sm">${fmtNum(kpi.ob1Sales)}</div><div class="delta">Order Bump 1</div>${vs(kpiCmpCount(kpi.ob1Sales, pr(M?.ob1Sales)))}</article>
@@ -2034,7 +2062,8 @@ async function loadAndRender() {
 
     const data = processData(rawVendas, rawMeta, cfg);
 
-    renderOfferTable(data.offerNames, cfg.offerMap);
+    const offerMapForTable = { ...DEFAULT_OFFER_MAP, ...loadConfig().offerMap, ...(cfg.offerMap || {}) };
+    renderOfferTable(data.offerNames, offerMapForTable);
     const finalCfg = { ...cfg, offerMap: readOfferMap() };
     saveConfig(finalCfg);
     const finalData = processData(rawVendas, rawMeta, finalCfg);
@@ -2177,7 +2206,10 @@ document.addEventListener('DOMContentLoaded', () => {
   if ($('filterTrafficTax')) $('filterTrafficTax').checked = !!cfg.includeTrafficTax;
 
   $('configToggle').addEventListener('click', () => $('configPanel').classList.toggle('open'));
-  $('cfgMatchMethod').addEventListener('change', toggleNameFields);
+  $('cfgMatchMethod').addEventListener('change', () => {
+    toggleNameFields();
+    saveConfig(readConfigFromUI());
+  });
   $('btnSaveConfig').addEventListener('click', loadAndRender);
   $('btnRefresh').addEventListener('click', () => loadAndRender());
   $('btnExportConfig').addEventListener('click', () => {
