@@ -332,6 +332,10 @@
             <input type="text" id="cfgMetaSheet" value="metaads_daily" />
           </div>
           <div class="config-field">
+            <label>Gastos Meta: campanha contem</label>
+            <input type="text" id="cfgMetaCampaignContains" placeholder="ex.: CL60" title="Só linhas cuja campaign_name contém este texto entram no investimento e funil Meta. Vazio = todas." />
+          </div>
+          <div class="config-field">
             <label>Nome do cliente</label>
             <input type="text" id="cfgClientName" value="Organize Com a Ju" />
           </div>
@@ -645,6 +649,7 @@ function getConfig() {
     sheetId: saved.sheetId || '1GE6v3hnXb-ol6pIS63TvBFuC2Kc4MRU-hpO5gXG9BnM',
     vendasSheet: saved.vendasSheet || 'vendas CORRETA retroativada',
     metaSheet: saved.metaSheet || 'metaads_daily',
+    metaCampaignNameContains: ('metaCampaignNameContains' in saved) ? String(saved.metaCampaignNameContains || '') : 'CL60',
     clientName: saved.clientName || 'Organize Com a Ju',
     matchMethod: saved.matchMethod === 'campaign_id' ? 'campaign_id' : 'name',
     utmCampaign: saved.utmCampaign || 'utm_campaign',
@@ -665,6 +670,8 @@ function populateConfigUI(cfg) {
   $('cfgSheetId').value = cfg.sheetId;
   $('cfgVendasSheet').value = cfg.vendasSheet;
   $('cfgMetaSheet').value = cfg.metaSheet;
+  const mcc = $('cfgMetaCampaignContains');
+  if (mcc) mcc.value = cfg.metaCampaignNameContains != null ? cfg.metaCampaignNameContains : '';
   $('cfgClientName').value = cfg.clientName;
   $('cfgMatchMethod').value = cfg.matchMethod;
   $('cfgUtmCampaign').value = cfg.utmCampaign;
@@ -686,6 +693,7 @@ function readConfigFromUI() {
     sheetId: $('cfgSheetId').value.trim(),
     vendasSheet: $('cfgVendasSheet').value.trim(),
     metaSheet: $('cfgMetaSheet').value.trim(),
+    metaCampaignNameContains: $('cfgMetaCampaignContains') ? $('cfgMetaCampaignContains').value.trim() : '',
     clientName: $('cfgClientName').value.trim(),
     matchMethod: $('cfgMatchMethod').value,
     utmCampaign: $('cfgUtmCampaign').value,
@@ -860,6 +868,12 @@ function processData(rawVendas, rawMeta, cfg) {
 
   if (cfg.dateFrom) meta = meta.filter(m => !m._date || m._date >= cfg.dateFrom);
   if (cfg.dateTo) meta = meta.filter(m => !m._date || m._date <= cfg.dateTo);
+
+  const metaCampNeedle = String(cfg.metaCampaignNameContains || '').trim();
+  if (metaCampNeedle) {
+    const nl = metaCampNeedle.toLowerCase();
+    meta = meta.filter(m => String(m.campaign_name || '').toLowerCase().includes(nl));
+  }
 
   const spendMult = cfg.includeTrafficTax ? META_SPEND_TAX_MULTIPLIER : 1;
   if (spendMult !== 1) {
