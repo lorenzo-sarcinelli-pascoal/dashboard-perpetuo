@@ -1767,6 +1767,54 @@ function parseDateTimeMs(rawDateTime) {
   return new Date(yyyy, mm, dd, hh, mi, ss).getTime();
 }
 
+function firstNonEmptyField(obj, keys) {
+  for (const k of keys) {
+    const v = obj[k];
+    if (v == null) continue;
+    const s = String(v).trim();
+    if (s) return s;
+  }
+  return '';
+}
+
+function resolveCustomerName(v) {
+  const direct = firstNonEmptyField(v, [
+    'customer_name',
+    'client_name',
+    'buyer_name',
+    'nome_cliente',
+    'nome_do_cliente',
+    'nome cliente',
+    'cliente_nome',
+    'nome_comprador',
+    'comprador_nome',
+    'buyer',
+    'customer',
+    'client',
+    'full_name',
+    'contact_name'
+  ]);
+  if (direct) return direct;
+
+  // Fallback por nome de coluna (case-insensitive), evitando colunas de oferta/campanha/anuncio.
+  const blocked = ['offer', 'product', 'campaign', 'ad_name', 'adset', 'utm', 'checkout', 'status'];
+  for (const key of Object.keys(v)) {
+    const k = String(key || '').toLowerCase().trim();
+    if (!k) continue;
+    if (blocked.some(b => k.includes(b))) continue;
+    const looksLikeCustomer =
+      k.includes('customer') ||
+      k.includes('cliente') ||
+      k.includes('buyer') ||
+      k.includes('comprador') ||
+      k.includes('nome');
+    if (!looksLikeCustomer) continue;
+    const val = String(v[key] || '').trim();
+    if (val) return val;
+  }
+  return '—';
+}
+
 function renderTableRecentSales(vendas) {
   const thead = `<tr><th>Nome da cliente</th><th class="r">Valor pago</th><th>Nome da oferta</th><th>Data-hora</th><th>utm_source</th><th>utm_campaign</th><th>utm_content</th></tr>`;
   const rows = [...(vendas || [])]
@@ -1785,7 +1833,7 @@ function renderTableRecentSales(vendas) {
     })
     .slice(0, 20)
     .map(v => {
-      const customerName = String(v.customer_name || v.client_name || v.name || '—');
+      const customerName = resolveCustomerName(v);
       const offerName = String(v.offer_name || v.product_name || '—');
       const dateTime = String(v.approved_date || v.order_date || v._date || '—');
       const utmSource = String(v.utm_source || '—');
