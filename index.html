@@ -1779,6 +1779,7 @@ function firstNonEmptyField(obj, keys) {
 
 function resolveCustomerName(v) {
   const direct = firstNonEmptyField(v, [
+    'user_name',
     'customer_name',
     'client_name',
     'buyer_name',
