@@ -1768,7 +1768,7 @@ function parseDateTimeMs(rawDateTime) {
 }
 
 function renderTableRecentSales(vendas) {
-  const thead = `<tr><th>ID transacao</th><th class="r">Valor pago</th><th>Nome da oferta</th><th>Data-hora</th><th>utm_source</th><th>utm_campaign</th><th>utm_content</th></tr>`;
+  const thead = `<tr><th>Nome da cliente</th><th class="r">Valor pago</th><th>Nome da oferta</th><th>Data-hora</th><th>utm_source</th><th>utm_campaign</th><th>utm_content</th></tr>`;
   const rows = [...(vendas || [])]
     .sort((a, b) => {
       const aRaw = a.approved_date || a.order_date || '';
@@ -1785,13 +1785,13 @@ function renderTableRecentSales(vendas) {
     })
     .slice(0, 20)
     .map(v => {
-      const transactionId = String(v.transaction_id || v.id_transaction || v.order_id || v.id || '—');
+      const customerName = String(v.customer_name || v.client_name || v.name || '—');
       const offerName = String(v.offer_name || v.product_name || '—');
       const dateTime = String(v.approved_date || v.order_date || v._date || '—');
       const utmSource = String(v.utm_source || '—');
       const utmCampaign = String(v.utm_campaign || '—');
       const utmContent = String(v.utm_content || '—');
-      return `<tr><td>${esc(transactionId)}</td><td class="r">${fmtBRL(v._price || 0)}</td><td>${esc(offerName)}</td><td>${esc(dateTime)}</td><td>${esc(utmSource)}</td><td>${esc(utmCampaign)}</td><td>${esc(utmContent)}</td></tr>`;
+      return `<tr><td>${esc(customerName)}</td><td class="r">${fmtBRL(v._price || 0)}</td><td>${esc(offerName)}</td><td>${esc(dateTime)}</td><td>${esc(utmSource)}</td><td>${esc(utmCampaign)}</td><td>${esc(utmContent)}</td></tr>`;
     }).join('');
 
   if (!rows) {
