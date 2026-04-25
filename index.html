@@ -497,6 +497,7 @@
     <div class="view-tabs" id="viewTabs" style="display:none;">
       <button type="button" class="tab-btn active" id="tabMain">Visao geral</button>
       <button type="button" class="tab-btn" id="tabFunnel">Funil (periodo)</button>
+      <button type="button" class="tab-btn" id="tabRecentSales">Ultimas vendas</button>
     </div>
 
     <div id="dashboardMainView">
@@ -605,6 +606,13 @@
         </div>
         <canvas id="chartFunnelMetrics"></canvas>
       </div>
+    </div>
+
+    <div id="recentSalesView" style="display:none;">
+      <section class="section">
+        <p class="section-title">Resumo das ultimas 20 vendas (periodo filtrado)</p>
+        <div class="overflow-x"><table id="tableRecentSales"><thead></thead><tbody></tbody></table></div>
+      </section>
     </div>
 
   </div>
@@ -1590,21 +1598,35 @@ function setDashboardView(view) {
   activeDashboardView = view;
   const main = $('dashboardMainView');
   const funnel = $('funnelView');
+  const recentSales = $('recentSalesView');
   const tabMain = $('tabMain');
   const tabFunnel = $('tabFunnel');
+  const tabRecentSales = $('tabRecentSales');
   if (view === 'funnel') {
     main.style.display = 'none';
     funnel.style.display = 'block';
+    recentSales.style.display = 'none';
     tabMain.classList.remove('active');
     tabFunnel.classList.add('active');
+    tabRecentSales.classList.remove('active');
     if (window._lastFinalData && window._lastFinalData.byDay) {
       renderFunnelChart(window._lastFinalData.byDay);
     }
+  } else if (view === 'recentSales') {
+    main.style.display = 'none';
+    funnel.style.display = 'none';
+    recentSales.style.display = 'block';
+    tabMain.classList.remove('active');
+    tabFunnel.classList.remove('active');
+    tabRecentSales.classList.add('active');
+    destroyFunnelChart();
   } else {
     main.style.display = 'block';
     funnel.style.display = 'none';
+    recentSales.style.display = 'none';
     tabMain.classList.add('active');
     tabFunnel.classList.remove('active');
+    tabRecentSales.classList.remove('active');
     destroyFunnelChart();
   }
 }
@@ -1726,6 +1748,57 @@ function renderTableSource(bySource, kpi) {
   ).join('');
   const totalRow = `<tr class="total"><td>Total</td><td class="r">${fmtNum(kpi.totalSales)}</td><td class="r">${fmtBRL(total)}</td><td class="r">100%</td></tr>`;
   $('tableSource').innerHTML = `<thead>${thead}</thead><tbody>${rows}${totalRow}</tbody>`;
+}
+
+function parseDateTimeMs(rawDateTime) {
+  if (!rawDateTime) return null;
+  const s = String(rawDateTime).trim();
+  if (!s) return null;
+  const parsed = Date.parse(s);
+  if (!isNaN(parsed)) return parsed;
+  const m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2})(?::(\d{2}))?)?$/);
+  if (!m) return null;
+  const dd = Number(m[1]);
+  const mm = Number(m[2]) - 1;
+  const yyyy = Number(m[3]);
+  const hh = Number(m[4] || '0');
+  const mi = Number(m[5] || '0');
+  const ss = Number(m[6] || '0');
+  return new Date(yyyy, mm, dd, hh, mi, ss).getTime();
+}
+
+function renderTableRecentSales(vendas) {
+  const thead = `<tr><th>ID transacao</th><th class="r">Valor pago</th><th>Nome da oferta</th><th>Data-hora</th><th>utm_source</th><th>utm_campaign</th><th>utm_content</th></tr>`;
+  const rows = [...(vendas || [])]
+    .sort((a, b) => {
+      const aRaw = a.approved_date || a.order_date || '';
+      const bRaw = b.approved_date || b.order_date || '';
+      const ams = parseDateTimeMs(aRaw);
+      const bms = parseDateTimeMs(bRaw);
+      if (ams != null && bms != null && bms !== ams) return bms - ams;
+      if (ams != null && bms == null) return -1;
+      if (ams == null && bms != null) return 1;
+      const ad = String(a._date || '');
+      const bd = String(b._date || '');
+      if (bd !== ad) return bd.localeCompare(ad);
+      return String(bRaw).localeCompare(String(aRaw));
+    })
+    .slice(0, 20)
+    .map(v => {
+      const transactionId = String(v.transaction_id || v.id_transaction || v.order_id || v.id || '—');
+      const offerName = String(v.offer_name || v.product_name || '—');
+      const dateTime = String(v.approved_date || v.order_date || v._date || '—');
+      const utmSource = String(v.utm_source || '—');
+      const utmCampaign = String(v.utm_campaign || '—');
+      const utmContent = String(v.utm_content || '—');
+      return `<tr><td>${esc(transactionId)}</td><td class="r">${fmtBRL(v._price || 0)}</td><td>${esc(offerName)}</td><td>${esc(dateTime)}</td><td>${esc(utmSource)}</td><td>${esc(utmCampaign)}</td><td>${esc(utmContent)}</td></tr>`;
+    }).join('');
+
+  if (!rows) {
+    $('tableRecentSales').innerHTML = `<thead>${thead}</thead><tbody><tr><td colspan="7">Sem vendas para exibir no periodo filtrado.</td></tr></tbody>`;
+    return;
+  }
+  $('tableRecentSales').innerHTML = `<thead>${thead}</thead><tbody>${rows}</tbody>`;
 }
 
 function renderSplit(kpi, byCampaign, bySource) {
@@ -2098,6 +2171,7 @@ async function loadAndRender() {
     renderTableAdset(finalData.byAdset);
     renderTableCreative(finalData.byCreative);
     renderTableSource(finalData.bySource, finalData.kpi);
+    renderTableRecentSales(finalData.vendas);
     renderSplit(finalData.kpi, finalData.byCampaign, finalData.bySource);
     renderFooter(finalCfg);
 
@@ -2153,6 +2227,7 @@ async function refresh() {
   renderTableAdset(finalData.byAdset);
   renderTableCreative(finalData.byCreative);
   renderTableSource(finalData.bySource, finalData.kpi);
+  renderTableRecentSales(finalData.vendas);
   renderSplit(finalData.kpi, finalData.byCampaign, finalData.bySource);
   renderFooter(cfg);
   $('clientName').textContent = cfg.clientName;
@@ -2279,6 +2354,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   $('tabMain').addEventListener('click', () => setDashboardView('main'));
   $('tabFunnel').addEventListener('click', () => setDashboardView('funnel'));
+  $('tabRecentSales').addEventListener('click', () => setDashboardView('recentSales'));
 
   $('funnelMetricToggles').addEventListener('change', () => {
     const bar = $('funnelMetricToggles');
