@@ -393,7 +393,7 @@
         <h3>Categorizacao de ofertas</h3>
         <div class="overflow-x">
           <table class="offer-table" id="offerTable">
-            <thead><tr><th>offer_name (auto-detectado)</th><th>Categoria</th></tr></thead>
+            <thead><tr><th>offer_name (auto-detectado)</th><th>Categoria</th><th>Funil</th></tr></thead>
             <tbody id="offerTableBody"></tbody>
           </table>
         </div>
@@ -456,6 +456,13 @@
     <button class="quick-btn" id="btnThisMonth">Este mes</button>
     <div class="filter-sep"></div>
     <button class="quick-btn" id="btnClearFilter" style="color:var(--danger);">Limpar</button>
+    <div class="filter-sep"></div>
+    <label style="font-size:12px;color:var(--muted);margin-right:4px;font-weight:700;">Funil:</label>
+    <select id="filterFunnel" style="min-width:120px;">
+      <option value="ALL">Todos</option>
+      <option value="CL60">CL60</option>
+      <option value="GRP">GRP</option>
+    </select>
     <div class="filter-sep"></div>
     <label style="font-size:12px;color:var(--muted);margin:0 4px 0 0;font-weight:700;">Imposto</label>
     <label style="font-size:12px;color:var(--major-01);display:inline-flex;align-items:center;gap:6px;cursor:pointer;margin:0;">
@@ -637,11 +644,18 @@ const STORAGE_KEY = 'the_perpetuo_dashboard_config';
 /** Multiplicador no investimento Meta (ex.: imposto/IOF sobre trafego). */
 const META_SPEND_TAX_MULTIPLIER = 1.1215;
 const OFFER_CATEGORIES = ['Produto Principal','Order Bump 1','Order Bump 2','Upsell','Ignorar'];
+const FUNNEL_OPTIONS = ['CL60','GRP'];
 const DEFAULT_OFFER_MAP = {
   'Casa Leve 60': 'Produto Principal',
   'Oferta Grupo Exclusivo': 'Order Bump 1',
   'Plano Casa Leve 60 - Execução Guiada': 'Order Bump 2',
   'Plano Casa Leve 60 - Execucao Guiada': 'Order Bump 2'
+};
+const DEFAULT_OFFER_FUNNEL_MAP = {
+  'Casa Leve 60': 'CL60',
+  'Plano Casa Leve 60 - Execução Guiada': 'CL60',
+  'Plano Casa Leve 60 - Execucao Guiada': 'CL60',
+  'Oferta Grupo Exclusivo': 'GRP'
 };
 
 function loadConfig() {
@@ -664,6 +678,8 @@ function getConfig() {
     utmAdset: saved.utmAdset || 'utm_medium',
     utmAd: saved.utmAd || 'utm_content',
     offerMap: { ...DEFAULT_OFFER_MAP, ...(saved.offerMap || {}) },
+    offerFunnelMap: { ...DEFAULT_OFFER_FUNNEL_MAP, ...(saved.offerFunnelMap || {}) },
+    selectedFunnel: (saved.selectedFunnel && (saved.selectedFunnel === 'ALL' || FUNNEL_OPTIONS.includes(saved.selectedFunnel))) ? saved.selectedFunnel : 'ALL',
     dateFrom: saved.dateFrom || '',
     dateTo: saved.dateTo || '',
     statusFilter: saved.statusFilter || 'paid',
@@ -688,6 +704,7 @@ function populateConfigUI(cfg) {
   $('cfgDateFrom').value = cfg.dateFrom;
   $('cfgDateTo').value = cfg.dateTo;
   $('cfgStatus').value = cfg.statusFilter;
+  if ($('filterFunnel')) $('filterFunnel').value = cfg.selectedFunnel || 'ALL';
   toggleNameFields();
   $('insightsTargetType').value = cfg.insightsTargetType || 'lucro';
   $('insightsTargetValue').value = cfg.insightsTargetValue || '10000';
@@ -708,6 +725,8 @@ function readConfigFromUI() {
     utmAdset: $('cfgUtmAdset').value,
     utmAd: $('cfgUtmAd').value,
     offerMap: readOfferMap(),
+    offerFunnelMap: readOfferFunnelMap(),
+    selectedFunnel: $('filterFunnel') ? $('filterFunnel').value : 'ALL',
     dateFrom: $('cfgDateFrom').value,
     dateTo: $('cfgDateTo').value,
     statusFilter: $('cfgStatus').value,
@@ -724,26 +743,42 @@ function readOfferMap() {
   const map = { ...base };
   rows.forEach(r => {
     const name = r.dataset.offer;
-    const sel = r.querySelector('select');
+    const sel = r.querySelector('select[data-offer-category]');
     if (name && sel) map[name] = sel.value;
   });
   return map;
 }
 
-function renderOfferTable(offerNames, offerMap) {
+function readOfferFunnelMap() {
+  const base = { ...DEFAULT_OFFER_FUNNEL_MAP, ...(loadConfig().offerFunnelMap || {}) };
+  const rows = $('offerTableBody').querySelectorAll('tr');
+  if (!rows.length) return base;
+  const map = { ...base };
+  rows.forEach(r => {
+    const name = r.dataset.offer;
+    const sel = r.querySelector('select[data-offer-funnel]');
+    if (name && sel) map[name] = sel.value;
+  });
+  return map;
+}
+
+function renderOfferTable(offerNames, offerMap, offerFunnelMap) {
   const tbody = $('offerTableBody');
   tbody.innerHTML = '';
   offerNames.forEach(name => {
     const tr = document.createElement('tr');
     tr.dataset.offer = name;
     const cat = offerMap[name] || 'Produto Principal';
-    tr.innerHTML = `<td>${esc(name)}</td><td><select>${OFFER_CATEGORIES.map(c =>
-      `<option${c === cat ? ' selected' : ''}>${c}</option>`).join('')}</select></td>`;
-    tr.querySelector('select').addEventListener('change', () => {
+    const funnel = offerFunnelMap[name] || '';
+    tr.innerHTML = `<td>${esc(name)}</td><td><select data-offer-category>${OFFER_CATEGORIES.map(c =>
+      `<option${c === cat ? ' selected' : ''}>${c}</option>`).join('')}</select></td><td><select data-offer-funnel><option value="">Sem funil</option>${FUNNEL_OPTIONS.map(f =>
+      `<option value="${esc(f)}"${f === funnel ? ' selected' : ''}>${esc(f)}</option>`).join('')}</select></td>`;
+    tr.querySelectorAll('select').forEach(sel => sel.addEventListener('change', () => {
       const cfg = loadConfig();
       cfg.offerMap = readOfferMap();
+      cfg.offerFunnelMap = readOfferFunnelMap();
       saveConfig(cfg);
-    });
+    }));
     tbody.appendChild(tr);
   });
 }
@@ -808,6 +843,13 @@ function findNumericCampaignId(venda) {
   return null;
 }
 
+function matchesFunnelTag(value, tag) {
+  const v = String(value || '').toLowerCase().trim();
+  const t = String(tag || '').toLowerCase().trim();
+  if (!t) return true;
+  return v.includes(t);
+}
+
 function processData(rawVendas, rawMeta, cfg) {
   let vendas = rawVendas.map(v => {
     const price = parseNum(v.payment_price);
@@ -840,6 +882,15 @@ function processData(rawVendas, rawMeta, cfg) {
 
   if (cfg.dateFrom) vendas = vendas.filter(v => !v._date || v._date >= cfg.dateFrom);
   if (cfg.dateTo) vendas = vendas.filter(v => !v._date || v._date <= cfg.dateTo);
+
+  const selectedFunnel = cfg.selectedFunnel || 'ALL';
+  const offerFunnelMap = cfg.offerFunnelMap || {};
+  if (selectedFunnel !== 'ALL') {
+    vendas = vendas.filter(v => {
+      const name = String(v.offer_name || v.product_name || '').trim();
+      return offerFunnelMap[name] === selectedFunnel;
+    });
+  }
 
   const offerMapForRefund = cfg.offerMap || {};
   function categoryOfOffer(v) {
@@ -877,10 +928,14 @@ function processData(rawVendas, rawMeta, cfg) {
   if (cfg.dateFrom) meta = meta.filter(m => !m._date || m._date >= cfg.dateFrom);
   if (cfg.dateTo) meta = meta.filter(m => !m._date || m._date <= cfg.dateTo);
 
-  const metaCampNeedle = String(cfg.metaCampaignNameContains || '').trim();
-  if (metaCampNeedle) {
-    const nl = metaCampNeedle.toLowerCase();
-    meta = meta.filter(m => String(m.campaign_name || '').toLowerCase().includes(nl));
+  if (selectedFunnel !== 'ALL') {
+    meta = meta.filter(m => matchesFunnelTag(m.campaign_name, selectedFunnel));
+  } else {
+    const metaCampNeedle = String(cfg.metaCampaignNameContains || '').trim();
+    if (metaCampNeedle) {
+      const nl = metaCampNeedle.toLowerCase();
+      meta = meta.filter(m => String(m.campaign_name || '').toLowerCase().includes(nl));
+    }
   }
 
   const spendMult = cfg.includeTrafficTax ? META_SPEND_TAX_MULTIPLIER : 1;
@@ -2136,7 +2191,8 @@ function renderInsights(ins) {
 
 function renderFooter(cfg) {
   const now = new Date().toLocaleString('pt-BR');
-  $('footerText').innerHTML = `Tracking HighEnd — Dashboard Perpetuo — Cliente: ${esc(cfg.clientName)}<br/>Fontes: Google Sheets (${esc(cfg.vendasSheet)} + ${esc(cfg.metaSheet)}) — Atualizado em ${now}`;
+  const funnelLabel = cfg.selectedFunnel && cfg.selectedFunnel !== 'ALL' ? cfg.selectedFunnel : 'Todos';
+  $('footerText').innerHTML = `Tracking HighEnd — Dashboard Perpetuo — Cliente: ${esc(cfg.clientName)}<br/>Funil: ${esc(funnelLabel)} · Fontes: Google Sheets (${esc(cfg.vendasSheet)} + ${esc(cfg.metaSheet)}) — Atualizado em ${now}`;
 }
 
 /* ============================================================
@@ -2198,8 +2254,9 @@ async function loadAndRender() {
     const data = processData(rawVendas, rawMeta, cfg);
 
     const offerMapForTable = { ...DEFAULT_OFFER_MAP, ...loadConfig().offerMap, ...(cfg.offerMap || {}) };
-    renderOfferTable(data.offerNames, offerMapForTable);
-    const finalCfg = { ...cfg, offerMap: readOfferMap() };
+    const offerFunnelMapForTable = { ...DEFAULT_OFFER_FUNNEL_MAP, ...loadConfig().offerFunnelMap, ...(cfg.offerFunnelMap || {}) };
+    renderOfferTable(data.offerNames, offerMapForTable, offerFunnelMapForTable);
+    const finalCfg = { ...cfg, offerMap: readOfferMap(), offerFunnelMap: readOfferFunnelMap() };
     saveConfig(finalCfg);
     const finalData = processData(rawVendas, rawMeta, finalCfg);
 
@@ -2227,7 +2284,8 @@ async function loadAndRender() {
     $('clientName').textContent = finalCfg.clientName;
     const period = finalCfg.dateFrom || finalData.byDay[0]?.date || '?';
     const periodEnd = finalCfg.dateTo || finalData.byDay[finalData.byDay.length - 1]?.date || '?';
-    $('headerMeta').innerHTML = `Periodo: ${period} a ${periodEnd} · ${fmtNum(finalData.vendas.length)} vendas filtradas`;
+    const funnelLabel = finalCfg.selectedFunnel && finalCfg.selectedFunnel !== 'ALL' ? finalCfg.selectedFunnel : 'Todos';
+    $('headerMeta').innerHTML = `Periodo: ${period} a ${periodEnd} · Funil: ${funnelLabel} · ${fmtNum(finalData.vendas.length)} vendas filtradas`;
     $('stickyUpdated').textContent = 'Atualizado: ' + new Date().toLocaleString('pt-BR') + ' · Periodo: ' + period + ' a ' + periodEnd;
 
     $('dashboardContent').style.display = '';
@@ -2282,7 +2340,8 @@ async function refresh() {
   $('clientName').textContent = cfg.clientName;
   const period = cfg.dateFrom || finalData.byDay[0]?.date || '?';
   const periodEnd = cfg.dateTo || finalData.byDay[finalData.byDay.length - 1]?.date || '?';
-  $('headerMeta').innerHTML = `Periodo: ${period} a ${periodEnd} · ${fmtNum(finalData.vendas.length)} vendas filtradas`;
+  const funnelLabel = cfg.selectedFunnel && cfg.selectedFunnel !== 'ALL' ? cfg.selectedFunnel : 'Todos';
+  $('headerMeta').innerHTML = `Periodo: ${period} a ${periodEnd} · Funil: ${funnelLabel} · ${fmtNum(finalData.vendas.length)} vendas filtradas`;
   $('stickyUpdated').textContent = 'Atualizado: ' + new Date().toLocaleString('pt-BR') + ' · Periodo: ' + period + ' a ' + periodEnd;
   window._lastFinalData = finalData;
   if ($('insightsSection').style.display !== 'none') {
@@ -2340,6 +2399,7 @@ document.addEventListener('DOMContentLoaded', () => {
   populateConfigUI(cfg);
   $('filterDateFrom').value = cfg.dateFrom;
   $('filterDateTo').value = cfg.dateTo;
+  if ($('filterFunnel')) $('filterFunnel').value = cfg.selectedFunnel || 'ALL';
   if ($('filterTrafficTax')) $('filterTrafficTax').checked = !!cfg.includeTrafficTax;
 
   $('configToggle').addEventListener('click', () => $('configPanel').classList.toggle('open'));
@@ -2365,6 +2425,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('btnClearFilter').addEventListener('click', () => {
     clearQuickActive();
     setFilterDates('', '');
+    if ($('filterFunnel')) $('filterFunnel').value = 'ALL';
     refresh();
   });
 
@@ -2380,6 +2441,12 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   $('filterTrafficTax').addEventListener('change', () => {
+    const c = readConfigFromUI();
+    saveConfig(c);
+    if (window._rawVendas) refresh();
+  });
+
+  $('filterFunnel').addEventListener('change', () => {
     const c = readConfigFromUI();
     saveConfig(c);
     if (window._rawVendas) refresh();
