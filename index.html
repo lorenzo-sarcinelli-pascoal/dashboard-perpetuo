@@ -170,6 +170,7 @@
     .filter-bar .quick-btn { font-size: 12px; padding: 6px 14px; border-radius: 6px; white-space: nowrap; }
     .filter-bar .quick-btn.active { background: var(--accent-02); color: #fff; border-color: transparent; }
     .filter-sep { width: 1px; height: 28px; background: var(--border); margin: 0 4px; }
+    .funnel-unmapped-hint { font-size: 12px; font-weight: 700; color: var(--warning); max-width: 280px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: help; }
 
     /* KPI Grids */
     .grid4,.grid5,.grid6,.grid8,.grid3 { display: grid; gap: 1px; background: var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 24px; }
@@ -463,6 +464,7 @@
       <option value="CL60">CL60</option>
       <option value="GRP">GRP</option>
     </select>
+    <span id="funnelUnmappedHint" class="funnel-unmapped-hint" role="status" aria-live="polite"></span>
     <div class="filter-sep"></div>
     <label style="font-size:12px;color:var(--muted);margin:0 4px 0 0;font-weight:700;">Imposto</label>
     <label style="font-size:12px;color:var(--major-01);display:inline-flex;align-items:center;gap:6px;cursor:pointer;margin:0;">
@@ -850,6 +852,32 @@ function matchesFunnelTag(value, tag) {
   return v.includes(t);
 }
 
+function computeUnmappedFunnelOffers(vendas, offerFunnelMap) {
+  const map = offerFunnelMap || {};
+  const unmapped = new Set();
+  for (const v of vendas) {
+    const name = String(v.offer_name || v.product_name || '').trim();
+    if (!name) continue;
+    const f = String(map[name] || '').trim();
+    if (!FUNNEL_OPTIONS.includes(f)) unmapped.add(name);
+  }
+  return [...unmapped].sort((a, b) => a.localeCompare(b));
+}
+
+function renderFunnelUnmappedHint(names) {
+  const el = $('funnelUnmappedHint');
+  if (!el) return;
+  const n = names && names.length ? names.length : 0;
+  if (!n) {
+    el.textContent = '';
+    el.removeAttribute('title');
+    return;
+  }
+  el.textContent = n + ' oferta(s) sem funil mapeado';
+  const t = names.join(' | ');
+  el.title = t.length > 900 ? t.slice(0, 897) + '…' : t;
+}
+
 function processData(rawVendas, rawMeta, cfg) {
   let vendas = rawVendas.map(v => {
     const price = parseNum(v.payment_price);
@@ -883,8 +911,10 @@ function processData(rawVendas, rawMeta, cfg) {
   if (cfg.dateFrom) vendas = vendas.filter(v => !v._date || v._date >= cfg.dateFrom);
   if (cfg.dateTo) vendas = vendas.filter(v => !v._date || v._date <= cfg.dateTo);
 
-  const selectedFunnel = cfg.selectedFunnel || 'ALL';
   const offerFunnelMap = cfg.offerFunnelMap || {};
+  const unmappedFunnelOffers = computeUnmappedFunnelOffers(vendas, offerFunnelMap);
+
+  const selectedFunnel = cfg.selectedFunnel || 'ALL';
   if (selectedFunnel !== 'ALL') {
     vendas = vendas.filter(v => {
       const name = String(v.offer_name || v.product_name || '').trim();
@@ -1009,7 +1039,7 @@ function processData(rawVendas, rawMeta, cfg) {
   const byOffer = groupByOffer(vendas, offerMap);
 
   return {
-    vendas, meta, offerNames,
+    vendas, meta, offerNames, unmappedFunnelOffers,
     kpi: {
       totalRevenue, totalSpend, totalPlatformFee, roas, profit, totalSales, principalSales, ob1Sales, ob2Sales, upsellSales, upsellRevenue, takeRateOB1, takeRateOB2, takeRateUpsell, upsellSalesMetaAds, cacGeral, cpaPrincipal, cpaPrincipalMeta, principalSalesMetaAds, ticketMedio, salesMetaAds, salesOrganic,
       refundRatePrincipal, totalRefundValue, principalRefundedCount, principalRefundDenominator,
@@ -2285,7 +2315,10 @@ async function loadAndRender() {
     const period = finalCfg.dateFrom || finalData.byDay[0]?.date || '?';
     const periodEnd = finalCfg.dateTo || finalData.byDay[finalData.byDay.length - 1]?.date || '?';
     const funnelLabel = finalCfg.selectedFunnel && finalCfg.selectedFunnel !== 'ALL' ? finalCfg.selectedFunnel : 'Todos';
-    $('headerMeta').innerHTML = `Periodo: ${period} a ${periodEnd} · Funil: ${funnelLabel} · ${fmtNum(finalData.vendas.length)} vendas filtradas`;
+    const um = (finalData.unmappedFunnelOffers && finalData.unmappedFunnelOffers.length) || 0;
+    const umHtml = um ? ` · <span style="color:var(--warning);font-weight:700;">${um} oferta(s) sem funil</span>` : '';
+    $('headerMeta').innerHTML = `Periodo: ${period} a ${periodEnd} · Funil: ${funnelLabel} · ${fmtNum(finalData.vendas.length)} vendas filtradas${umHtml}`;
+    renderFunnelUnmappedHint(finalData.unmappedFunnelOffers || []);
     $('stickyUpdated').textContent = 'Atualizado: ' + new Date().toLocaleString('pt-BR') + ' · Periodo: ' + period + ' a ' + periodEnd;
 
     $('dashboardContent').style.display = '';
@@ -2341,7 +2374,10 @@ async function refresh() {
   const period = cfg.dateFrom || finalData.byDay[0]?.date || '?';
   const periodEnd = cfg.dateTo || finalData.byDay[finalData.byDay.length - 1]?.date || '?';
   const funnelLabel = cfg.selectedFunnel && cfg.selectedFunnel !== 'ALL' ? cfg.selectedFunnel : 'Todos';
-  $('headerMeta').innerHTML = `Periodo: ${period} a ${periodEnd} · Funil: ${funnelLabel} · ${fmtNum(finalData.vendas.length)} vendas filtradas`;
+  const um = (finalData.unmappedFunnelOffers && finalData.unmappedFunnelOffers.length) || 0;
+  const umHtml = um ? ` · <span style="color:var(--warning);font-weight:700;">${um} oferta(s) sem funil</span>` : '';
+  $('headerMeta').innerHTML = `Periodo: ${period} a ${periodEnd} · Funil: ${funnelLabel} · ${fmtNum(finalData.vendas.length)} vendas filtradas${umHtml}`;
+  renderFunnelUnmappedHint(finalData.unmappedFunnelOffers || []);
   $('stickyUpdated').textContent = 'Atualizado: ' + new Date().toLocaleString('pt-BR') + ' · Periodo: ' + period + ' a ' + periodEnd;
   window._lastFinalData = finalData;
   if ($('insightsSection').style.display !== 'none') {
