@@ -471,6 +471,19 @@
       <input type="checkbox" id="filterTrafficTax" />
       Com imposto (×1,1215)
     </label>
+    <div class="filter-sep"></div>
+    <label style="font-size:12px;color:var(--muted);margin-right:4px;font-weight:700;">Comparar com:</label>
+    <select id="filterComparison" style="min-width:200px;" title="Periodo de referencia para as linhas vs nos cards de KPI">
+      <option value="none">Sem comparacao</option>
+      <option value="prev_period">Periodo anterior (mesma duracao)</option>
+      <option value="prev_week">Semana anterior (mesma duracao)</option>
+      <option value="prev_day">Dia anterior ao inicio</option>
+      <option value="prev_3d">3 dias antes do inicio</option>
+      <option value="prev_7d">7 dias antes do inicio</option>
+      <option value="prev_month">Mes anterior (mesmas datas)</option>
+      <option value="mtd_avg">Media MTD ajustada ao filtro</option>
+    </select>
+    <span id="comparisonRangeHint" class="funnel-unmapped-hint" style="max-width:220px;color:var(--muted);" role="status"></span>
   </div>
 
   <!-- INSIGHTS BAR -->
@@ -687,7 +700,8 @@ function getConfig() {
     statusFilter: saved.statusFilter || 'paid',
     insightsTargetType: saved.insightsTargetType || 'lucro',
     insightsTargetValue: saved.insightsTargetValue || '10000',
-    includeTrafficTax: saved.includeTrafficTax === true
+    includeTrafficTax: saved.includeTrafficTax === true,
+    comparisonMode: saved.comparisonMode || 'mtd_avg'
   };
 }
 
@@ -707,6 +721,7 @@ function populateConfigUI(cfg) {
   $('cfgDateTo').value = cfg.dateTo;
   $('cfgStatus').value = cfg.statusFilter;
   if ($('filterFunnel')) $('filterFunnel').value = cfg.selectedFunnel || 'ALL';
+  if ($('filterComparison')) $('filterComparison').value = cfg.comparisonMode || 'mtd_avg';
   toggleNameFields();
   $('insightsTargetType').value = cfg.insightsTargetType || 'lucro';
   $('insightsTargetValue').value = cfg.insightsTargetValue || '10000';
@@ -734,7 +749,8 @@ function readConfigFromUI() {
     statusFilter: $('cfgStatus').value,
     insightsTargetType: $('insightsTargetType').value,
     insightsTargetValue: $('insightsTargetValue').value,
-    includeTrafficTax: $('filterTrafficTax') ? $('filterTrafficTax').checked : false
+    includeTrafficTax: $('filterTrafficTax') ? $('filterTrafficTax').checked : false,
+    comparisonMode: $('filterComparison') ? $('filterComparison').value : 'mtd_avg'
   };
 }
 
@@ -1276,6 +1292,116 @@ function filterPeriodDayCount(cfg, byDay) {
   return inclusiveCalendarDaysISO(dates[0], dates[dates.length - 1]);
 }
 
+function addDaysISO(iso, days) {
+  if (!iso) return '';
+  const d = new Date(iso + 'T12:00:00');
+  if (isNaN(d.getTime())) return '';
+  d.setDate(d.getDate() + days);
+  return fmtDateISO(d);
+}
+
+function subtractMonthsISO(iso, months) {
+  if (!iso) return '';
+  const d = new Date(iso + 'T12:00:00');
+  if (isNaN(d.getTime())) return '';
+  const day = d.getDate();
+  d.setMonth(d.getMonth() - months);
+  if (d.getDate() !== day) d.setDate(0);
+  return fmtDateISO(d);
+}
+
+function formatCompareRangeLabel(from, to) {
+  if (!from || !to) return '';
+  if (from === to) return from.slice(8, 10) + '/' + from.slice(5, 7);
+  return from.slice(8, 10) + '/' + from.slice(5, 7) + '–' + to.slice(8, 10) + '/' + to.slice(5, 7);
+}
+
+function resolvePrimaryPeriod(cfg, byDay) {
+  let from = cfg.dateFrom;
+  let to = cfg.dateTo;
+  if (!from || !to) {
+    if (byDay && byDay.length) {
+      const dates = byDay.map(d => d.date).filter(Boolean).sort();
+      from = from || dates[0];
+      to = to || dates[dates.length - 1];
+    }
+  }
+  if (!from || !to) {
+    const mtd = getMonthToDateBoundsISO();
+    from = mtd.from;
+    to = mtd.to;
+  }
+  return { from, to };
+}
+
+/** Retorna intervalo de comparacao ou null (sem comparacao). mode: direct | mtd_avg */
+function resolveComparisonRange(cfg, byDay) {
+  const mode = cfg.comparisonMode || 'mtd_avg';
+  if (mode === 'none') return null;
+
+  const { from, to } = resolvePrimaryPeriod(cfg, byDay);
+  const nDays = inclusiveCalendarDaysISO(from, to);
+
+  if (mode === 'mtd_avg') {
+    const mtd = getMonthToDateBoundsISO();
+    return { from: mtd.from, to: mtd.to, label: mtd.labelShort, mode: 'mtd_avg' };
+  }
+
+  let cFrom, cTo;
+  if (mode === 'prev_period') {
+    cTo = addDaysISO(from, -1);
+    cFrom = addDaysISO(cTo, -(nDays - 1));
+  } else if (mode === 'prev_week') {
+    cTo = addDaysISO(from, -7);
+    cFrom = addDaysISO(cTo, -(nDays - 1));
+  } else if (mode === 'prev_3d') {
+    cTo = addDaysISO(from, -1);
+    cFrom = addDaysISO(from, -3);
+  } else if (mode === 'prev_7d') {
+    cTo = addDaysISO(from, -1);
+    cFrom = addDaysISO(from, -7);
+  } else if (mode === 'prev_day') {
+    cFrom = cTo = addDaysISO(from, -1);
+  } else if (mode === 'prev_month') {
+    cFrom = subtractMonthsISO(from, 1);
+    cTo = subtractMonthsISO(to, 1);
+  } else {
+    return null;
+  }
+
+  if (!cFrom || !cTo) return null;
+  return { from: cFrom, to: cTo, label: formatCompareRangeLabel(cFrom, cTo), mode: 'direct' };
+}
+
+function computeComparisonContext(rawVendas, rawMeta, cfg, byDay) {
+  const spec = resolveComparisonRange(cfg, byDay);
+  if (!spec) return null;
+  const compareCfg = { ...cfg, dateFrom: spec.from, dateTo: spec.to };
+  const kpi = processData(rawVendas, rawMeta, compareCfg).kpi;
+  const nDaysRef = inclusiveCalendarDaysISO(spec.from, spec.to);
+  return {
+    kpi,
+    label: spec.label,
+    mode: spec.mode,
+    nDaysRef,
+    from: spec.from,
+    to: spec.to
+  };
+}
+
+function renderComparisonRangeHint(ctx) {
+  const el = $('comparisonRangeHint');
+  if (!el) return;
+  if (!ctx || !ctx.kpi) {
+    el.textContent = '';
+    el.removeAttribute('title');
+    return;
+  }
+  const suffix = ctx.mode === 'mtd_avg' ? ' (media diaria MTD)' : '';
+  el.textContent = ctx.from + ' a ' + ctx.to + suffix;
+  el.title = 'Referencia: ' + ctx.from + ' a ' + ctx.to + suffix;
+}
+
 function funnelCostsFromKpi(k) {
   if (!k) return { cpm: null, cpc: null, cpLpv: null, cpIc: null, cpaMeta: null, cpaPrinc: null };
   const spend = k.totalSpend || 0;
@@ -1349,25 +1475,31 @@ function kpiCmpMoney(cur, mon, lowerIsBetter, neutral) {
   return kpiCmpSpan(t, cls);
 }
 
-function kpiVsMonthLine(kpiMonth, label, innerHtml, mode) {
-  if (!kpiMonth || !label) return '';
-  const prefix = mode === 'funnel'
-    ? 'vs mes corrente (' + label + '): '
-    : 'vs média do mês ajustada ao filtro (' + label + '): ';
+function kpiVsCompareLine(compareCtx, innerHtml, cardMode) {
+  if (!compareCtx || !compareCtx.kpi || !compareCtx.label) return '';
+  let prefix;
+  if (compareCtx.mode === 'mtd_avg') {
+    prefix = cardMode === 'funnel'
+      ? 'vs mes corrente (' + compareCtx.label + '): '
+      : 'vs media do mes ajustada ao filtro (' + compareCtx.label + '): ';
+  } else {
+    prefix = 'vs ' + compareCtx.label + ': ';
+  }
   return '<div class="kpi-compare">' + prefix + innerHtml + '</div>';
 }
 
-/** Referencia = media diaria do MTD (1–hoje) x dias do filtro; taxas agregadas do mes sem prorata. */
-function renderKPIs(kpi, kpiMonth, monthLabel, nDaysMTD, nDaysFilter, includeTrafficTax) {
-  const M = kpiMonth || null;
-  const L = monthLabel || '';
-  const nM = Math.max(1, nDaysMTD | 0);
+/** Referencia configuravel: direct = totais do periodo; mtd_avg = media diaria MTD x dias do filtro. */
+function renderKPIs(kpi, compareCtx, nDaysFilter, includeTrafficTax) {
+  const M = compareCtx?.kpi || null;
+  const cmpMode = compareCtx?.mode || 'none';
+  const nM = Math.max(1, compareCtx?.nDaysRef | 0);
   const nF = Math.max(1, nDaysFilter | 0);
   const pr = val => {
     if (!M || !isFinite(val)) return null;
-    return (val / nM) * nF;
+    if (cmpMode === 'mtd_avg') return (val / nM) * nF;
+    return val;
   };
-  const vs = inner => kpiVsMonthLine(M, L, inner, 'kpi');
+  const vs = inner => kpiVsCompareLine(compareCtx, inner, 'kpi');
   const investDelta = 'Meta Ads' + (includeTrafficTax ? ' · Inclui ajuste imposto trafego (×' + META_SPEND_TAX_MULTIPLIER + ')' : '');
 
   const rSema = kpi.roas;
@@ -1412,7 +1544,7 @@ function fmtPctFromRatio(v) {
   return (v * 100).toFixed(2) + '%';
 }
 
-function renderFunnelKPIs(kpi, kpiMonth, monthLabel) {
+function renderFunnelKPIs(kpi, compareCtx) {
   const spend = kpi.totalSpend || 0;
   const cpm = kpi.totalImpressions > 0 ? (spend / kpi.totalImpressions) * 1000 : null;
   const cpc = kpi.totalClicks > 0 ? spend / kpi.totalClicks : null;
@@ -1421,9 +1553,8 @@ function renderFunnelKPIs(kpi, kpiMonth, monthLabel) {
   const cpaMeta = kpi.principalSalesMetaAds > 0 ? kpi.cpaPrincipalMeta : null;
   const cpaPrinc = kpi.principalSales > 0 ? kpi.cpaPrincipal : null;
 
-  const M = kpiMonth || null;
-  const L = monthLabel || '';
-  const vs = inner => kpiVsMonthLine(M, L, inner, 'funnel');
+  const M = compareCtx?.kpi || null;
+  const vs = inner => kpiVsCompareLine(compareCtx, inner, 'funnel');
   const fm = funnelCostsFromKpi(M);
 
   const cost1 = `<div class="kpi-funnel-cost"><div class="kpi-funnel-cost-row">CPM · ${fmtFunnelCostBRL(cpm)}</div><div class="kpi-funnel-cost-row">CPC · ${fmtFunnelCostBRL(cpc)}</div></div>` +
@@ -2285,16 +2416,13 @@ async function loadAndRender() {
     saveConfig(finalCfg);
     const finalData = processData(rawVendas, rawMeta, finalCfg);
 
-    const mtd = getMonthToDateBoundsISO();
-    const monthCfg = { ...finalCfg, dateFrom: mtd.from, dateTo: mtd.to };
-    const kpiMonth = processData(rawVendas, rawMeta, monthCfg).kpi;
-    const nDaysMTD = inclusiveCalendarDaysISO(mtd.from, mtd.to);
     const nDaysFilter = filterPeriodDayCount(finalCfg, finalData.byDay);
+    const compareCtx = computeComparisonContext(rawVendas, rawMeta, finalCfg, finalData.byDay);
 
     enrichDayWithOfferSales(finalData.byDay, finalData.vendas, finalCfg.offerMap);
 
-    renderKPIs(finalData.kpi, kpiMonth, mtd.labelShort, nDaysMTD, nDaysFilter, !!finalCfg.includeTrafficTax);
-    renderFunnelKPIs(finalData.kpi, kpiMonth, mtd.labelShort);
+    renderKPIs(finalData.kpi, compareCtx, nDaysFilter, !!finalCfg.includeTrafficTax);
+    renderFunnelKPIs(finalData.kpi, compareCtx);
     renderFunnelVisual(finalData.kpi, !!finalCfg.includeTrafficTax);
     renderCharts(finalData.byDay, finalData.kpi);
     renderTableOffer(finalData.byOffer, finalData.kpi);
@@ -2314,6 +2442,7 @@ async function loadAndRender() {
     const umHtml = um ? ` · <span style="color:var(--warning);font-weight:700;">${um} oferta(s) sem funil</span>` : '';
     $('headerMeta').innerHTML = `Periodo: ${period} a ${periodEnd} · Funil: ${funnelLabel} · ${fmtNum(finalData.vendas.length)} vendas filtradas${umHtml}`;
     renderFunnelUnmappedHint(finalData.unmappedFunnelOffers || []);
+    renderComparisonRangeHint(compareCtx);
     $('stickyUpdated').textContent = 'Atualizado: ' + new Date().toLocaleString('pt-BR') + ' · Periodo: ' + period + ' a ' + periodEnd;
 
     $('dashboardContent').style.display = '';
@@ -2347,14 +2476,11 @@ async function refresh() {
   $('filterDateFrom').value = cfg.dateFrom;
   $('filterDateTo').value = cfg.dateTo;
   const finalData = processData(window._rawVendas, window._rawMeta, cfg);
-  const mtd = getMonthToDateBoundsISO();
-  const monthCfg = { ...cfg, dateFrom: mtd.from, dateTo: mtd.to };
-  const kpiMonth = processData(window._rawVendas, window._rawMeta, monthCfg).kpi;
-  const nDaysMTD = inclusiveCalendarDaysISO(mtd.from, mtd.to);
   const nDaysFilter = filterPeriodDayCount(cfg, finalData.byDay);
+  const compareCtx = computeComparisonContext(window._rawVendas, window._rawMeta, cfg, finalData.byDay);
   enrichDayWithOfferSales(finalData.byDay, finalData.vendas, cfg.offerMap);
-  renderKPIs(finalData.kpi, kpiMonth, mtd.labelShort, nDaysMTD, nDaysFilter, !!cfg.includeTrafficTax);
-  renderFunnelKPIs(finalData.kpi, kpiMonth, mtd.labelShort);
+  renderKPIs(finalData.kpi, compareCtx, nDaysFilter, !!cfg.includeTrafficTax);
+  renderFunnelKPIs(finalData.kpi, compareCtx);
   renderFunnelVisual(finalData.kpi, !!cfg.includeTrafficTax);
   renderCharts(finalData.byDay, finalData.kpi);
   renderTableOffer(finalData.byOffer, finalData.kpi);
@@ -2373,6 +2499,7 @@ async function refresh() {
   const umHtml = um ? ` · <span style="color:var(--warning);font-weight:700;">${um} oferta(s) sem funil</span>` : '';
   $('headerMeta').innerHTML = `Periodo: ${period} a ${periodEnd} · Funil: ${funnelLabel} · ${fmtNum(finalData.vendas.length)} vendas filtradas${umHtml}`;
   renderFunnelUnmappedHint(finalData.unmappedFunnelOffers || []);
+  renderComparisonRangeHint(compareCtx);
   $('stickyUpdated').textContent = 'Atualizado: ' + new Date().toLocaleString('pt-BR') + ' · Periodo: ' + period + ' a ' + periodEnd;
   window._lastFinalData = finalData;
   if ($('insightsSection').style.display !== 'none') {
@@ -2431,6 +2558,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('filterDateFrom').value = cfg.dateFrom;
   $('filterDateTo').value = cfg.dateTo;
   if ($('filterFunnel')) $('filterFunnel').value = cfg.selectedFunnel || 'ALL';
+  if ($('filterComparison')) $('filterComparison').value = cfg.comparisonMode || 'mtd_avg';
   if ($('filterTrafficTax')) $('filterTrafficTax').checked = !!cfg.includeTrafficTax;
 
   $('configToggle').addEventListener('click', () => $('configPanel').classList.toggle('open'));
@@ -2478,6 +2606,12 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   $('filterFunnel').addEventListener('change', () => {
+    const c = readConfigFromUI();
+    saveConfig(c);
+    if (window._rawVendas) refresh();
+  });
+
+  $('filterComparison').addEventListener('change', () => {
     const c = readConfigFromUI();
     saveConfig(c);
     if (window._rawVendas) refresh();
