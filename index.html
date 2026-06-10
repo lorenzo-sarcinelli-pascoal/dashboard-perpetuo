@@ -234,61 +234,27 @@
     ul, ol { padding-left: 18px; line-height: 1.65; }
     .overflow-x { overflow-x: auto; }
 
-    /* Insights Bar */
-    .insights-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 24px; padding: 12px 16px; background: var(--surface-01); border: 1px solid var(--border); border-radius: 12px; }
-    .insights-bar label { margin-bottom: 0; }
-    .insights-bar input[type="text"] { min-width: 90px; max-width: 120px; }
-    .insights-bar select { min-width: 160px; }
-
     /* View tabs (Visao geral / Funil) */
     .view-tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
     .tab-btn { border: 1px solid var(--border); background: var(--surface-01); color: var(--muted); padding: 10px 18px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
     .tab-btn:hover { background: var(--surface-02); color: var(--major-01); }
     .tab-btn.active { background: var(--accent-02); color: #fff; border-color: transparent; }
 
-    /* Insights Section */
-    .insights-section { background: var(--surface-01); border: 1px solid var(--border); border-left: 3px solid var(--accent-04); border-radius: 12px; padding: 24px; margin-bottom: 24px; }
-    .insights-section .section-title { color: var(--accent-04); margin-bottom: 16px; font-size: 13px; }
-    .insights-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px; }
-    .insight-card { background: var(--surface-02); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
-    .insight-card .ic-label { font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); font-weight: 700; margin-bottom: 6px; }
-    .insight-card .ic-value { font-size: 22px; font-weight: 700; margin-bottom: 4px; font-variant-numeric: tabular-nums; }
-    .insight-card .ic-sub { font-size: 11px; color: var(--muted); }
-
-    /* Progress bar */
-    .progress-track { width: 100%; height: 24px; background: var(--surface-02); border-radius: 12px; overflow: hidden; margin: 12px 0; position: relative; border: 1px solid var(--border); }
-    .progress-fill { height: 100%; border-radius: 12px; transition: width .6s ease; display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; font-size: 11px; font-weight: 700; color: #fff; min-width: 40px; }
-    .progress-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
-
-    /* Insights sub-sections */
-    .ins-block { margin-bottom: 20px; }
-    .ins-block:last-child { margin-bottom: 0; }
-    .ins-block-title { font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--accent-03); font-weight: 700; margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
-
-    /* Creative audit table */
-    .tier-tag { font-size: 10px; font-weight: 700; border-radius: 4px; padding: 2px 8px; display: inline-block; }
-    .tier-winner { background: rgba(88,212,23,.15); color: var(--success); }
-    .tier-mediocre { background: rgba(255,195,15,.15); color: var(--warning); }
-    .tier-loser { background: rgba(252,113,72,.15); color: var(--danger); }
-
-    /* Action plan */
-    .action-list { list-style: none; padding-left: 0; counter-reset: action-counter; }
-    .action-item { counter-increment: action-counter; padding: 12px 14px; background: var(--surface-02); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; display: flex; align-items: flex-start; gap: 12px; }
-    .action-item::before { content: counter(action-counter); display: flex; align-items: center; justify-content: center; min-width: 28px; height: 28px; background: var(--accent-02); color: #fff; border-radius: 50%; font-size: 12px; font-weight: 700; flex-shrink: 0; }
-    .action-body { flex: 1; }
-    .action-body strong { display: block; font-size: 13px; margin-bottom: 2px; }
-    .action-body span { font-size: 11px; color: var(--muted); }
-    .action-impact { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 6px; white-space: nowrap; align-self: center; }
-    .impact-save { background: rgba(88,212,23,.12); color: var(--success); }
-    .impact-add { background: rgba(23,150,212,.12); color: var(--accent-02); }
-    .impact-test { background: rgba(255,195,15,.12); color: var(--warning); }
-
-    /* Day-of-week heatmap */
-    .dow-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 8px; }
-    .dow-cell { text-align: center; padding: 10px 4px; border-radius: 8px; border: 1px solid var(--border); }
-    .dow-cell .dow-day { font-size: 10px; text-transform: uppercase; font-weight: 700; color: var(--muted); margin-bottom: 4px; }
-    .dow-cell .dow-val { font-size: 14px; font-weight: 700; }
-    .dow-cell .dow-sub { font-size: 10px; color: var(--muted); }
+    /* Diagnostico / Acoes */
+    .diag-summary { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+    .diag-summary-card { flex: 1; min-width: 140px; background: var(--surface-02); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+    .diag-summary-card .ds-label { font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); font-weight: 700; }
+    .diag-summary-card .ds-val { font-size: 26px; font-weight: 700; margin-top: 4px; }
+    .diag-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 16px; }
+    .diag-toolbar label { margin: 0; font-size: 12px; color: var(--muted); text-transform: none; letter-spacing: 0; }
+    .action-queue-item { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; padding: 12px 14px; background: var(--surface-02); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; }
+    .action-queue-item.approved { border-left: 3px solid var(--success); }
+    .action-queue-item.done { opacity: .75; }
+    .action-queue-body { flex: 1; min-width: 200px; }
+    .action-queue-body strong { display: block; font-size: 13px; margin-bottom: 4px; }
+    .action-queue-body span { font-size: 11px; color: var(--muted); line-height: 1.45; }
+    .action-queue-meta { font-size: 11px; font-weight: 700; white-space: nowrap; }
+    textarea.action-import { width: 100%; min-height: 120px; font-family: ui-monospace, monospace; font-size: 11px; margin-bottom: 10px; }
 
     @media (max-width: 980px) {
       .grid4,.grid5,.grid6,.grid8,.grid3,.split { grid-template-columns: 1fr; }
@@ -296,10 +262,6 @@
       .header { flex-direction: column; }
       .filter-bar { flex-direction: row; }
       .the-logo { height: 32px; }
-      .insights-grid { grid-template-columns: 1fr 1fr; }
-      .dow-grid { grid-template-columns: repeat(4, 1fr); }
-      .action-item { flex-direction: column; gap: 8px; }
-      .action-impact { align-self: flex-start; }
     }
   </style>
 </head>
@@ -402,6 +364,35 @@
       </div>
 
       <div class="config-section">
+        <h3>Metas alvo (opcional)</h3>
+        <p style="font-size:11px;color:var(--muted);margin-bottom:10px;">Usadas na aba Diagnostico. Deixe em branco para usar apenas benchmark historico.</p>
+        <div class="config-row">
+          <div class="config-field">
+            <label>ROAS minimo</label>
+            <input type="text" id="cfgTargetRoas" placeholder="ex: 1.8" />
+          </div>
+          <div class="config-field">
+            <label>CPA principal max (R$)</label>
+            <input type="text" id="cfgTargetCpaPrincipal" placeholder="ex: 120" />
+          </div>
+          <div class="config-field">
+            <label>Take rate OB1 min (%)</label>
+            <input type="text" id="cfgTargetTakeOB1" placeholder="ex: 22" />
+          </div>
+          <div class="config-field">
+            <label>Lucro mensal min (R$)</label>
+            <input type="text" id="cfgTargetMonthlyProfit" placeholder="ex: 10000" />
+          </div>
+        </div>
+        <div class="config-row">
+          <div class="config-field">
+            <label>Webhook n8n (opcional)</label>
+            <input type="text" id="cfgN8nWebhookUrl" placeholder="https://..." title="Fase 3B: envio de acoes aprovadas" />
+          </div>
+        </div>
+      </div>
+
+      <div class="config-section">
         <h3>Filtros</h3>
         <div class="config-row">
           <div class="config-field">
@@ -486,21 +477,6 @@
     <span id="comparisonRangeHint" class="funnel-unmapped-hint" style="max-width:220px;color:var(--muted);" role="status"></span>
   </div>
 
-  <!-- INSIGHTS BAR -->
-  <div class="insights-bar" id="insightsBar" style="display:none;">
-    <label style="font-size:12px;color:var(--accent-04);margin-right:2px;font-weight:700;">Insights &amp; Escala</label>
-    <div class="filter-sep"></div>
-    <label>Meta:</label>
-    <select id="insightsTargetType" style="min-width:150px;">
-      <option value="lucro">Lucro do projeto</option>
-      <option value="faturamento">Faturamento liquido</option>
-    </select>
-    <label>R$</label>
-    <input type="text" id="insightsTargetValue" value="10000" style="min-width:90px;max-width:120px;" />
-    <div class="filter-sep"></div>
-    <button class="primary" id="btnGenerateInsights">Gerar Insights</button>
-  </div>
-
   <!-- DASHBOARD CONTENT -->
   <div id="dashboardContent" style="display:none;">
 
@@ -520,6 +496,8 @@
       <button type="button" class="tab-btn active" id="tabMain">Visao geral</button>
       <button type="button" class="tab-btn" id="tabFunnel">Funil (periodo)</button>
       <button type="button" class="tab-btn" id="tabRecentSales">Ultimas vendas</button>
+      <button type="button" class="tab-btn" id="tabDiagnostico">Diagnostico</button>
+      <button type="button" class="tab-btn" id="tabActions">Acoes</button>
     </div>
 
     <div id="dashboardMainView">
@@ -557,9 +535,6 @@
         <canvas id="chartSalesByType"></canvas>
       </div>
     </div>
-
-    <!-- Insights & Escala -->
-    <section class="insights-section" id="insightsSection" style="display:none;"></section>
 
     <!-- Faturamento por Oferta -->
     <section class="section" id="sectionOffer">
@@ -637,6 +612,53 @@
       </section>
     </div>
 
+    <div id="diagnosticoView" style="display:none;">
+      <div class="diag-toolbar">
+        <label>Janela benchmark:</label>
+        <select id="diagBenchmarkWindow" style="min-width:120px;">
+          <option value="7">7 dias</option>
+          <option value="14">14 dias</option>
+          <option value="30" selected>30 dias</option>
+          <option value="90">90 dias</option>
+        </select>
+        <div class="filter-sep"></div>
+        <button type="button" class="primary" id="btnExportAnalysis">Exportar para analise (JSON)</button>
+        <button type="button" id="btnCopyAnalysis">Copiar JSON</button>
+      </div>
+      <div id="diagSummaryMount" class="diag-summary"></div>
+      <section class="section">
+        <p class="section-title">Desvios vs media historica e metas</p>
+        <div class="overflow-x"><table id="tableDiagMetrics"><thead></thead><tbody></tbody></table></div>
+      </section>
+      <section class="section">
+        <p class="section-title">Drill-down — campanhas fora do padrao (ROAS)</p>
+        <div class="overflow-x"><table id="tableDiagCampaigns"><thead></thead><tbody></tbody></table></div>
+      </section>
+      <section class="section">
+        <p class="section-title">Drill-down — conjuntos fora do padrao</p>
+        <div class="overflow-x"><table id="tableDiagAdsets"><thead></thead><tbody></tbody></table></div>
+      </section>
+      <section class="section">
+        <p class="section-title">Drill-down — criativos fora do padrao</p>
+        <div class="overflow-x"><table id="tableDiagCreatives"><thead></thead><tbody></tbody></table></div>
+      </section>
+    </div>
+
+    <div id="actionsView" style="display:none;">
+      <section class="section">
+        <p class="section-title">Fila de acoes propostas</p>
+        <p class="insight2">Importe o JSON gerado pela skill <code>analise-perpetuo-escala</code> no Cursor. Aprove, execute no Ads Manager (ou via MCP) e marque como concluida.</p>
+        <textarea id="actionsImportText" class="action-import" placeholder='Cole aqui o array "actions" ou o JSON completo da analise...'></textarea>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
+          <button type="button" class="primary" id="btnImportActions">Importar acoes</button>
+          <button type="button" id="btnExportApprovedActions">Exportar aprovadas</button>
+          <button type="button" id="btnSendN8nActions" title="Requer webhook configurado">Enviar aprovadas para n8n</button>
+          <button type="button" id="btnClearActions" style="color:var(--danger);">Limpar fila</button>
+        </div>
+        <div id="actionsQueueMount"></div>
+      </section>
+    </div>
+
   </div>
 
   <!-- EMPTY STATE -->
@@ -656,6 +678,9 @@ if (typeof Chart !== 'undefined' && typeof ChartDataLabels !== 'undefined') {
    CONFIG MODULE
    ============================================================ */
 const STORAGE_KEY = 'the_perpetuo_dashboard_config';
+const ACTIONS_QUEUE_KEY = 'the_perpetuo_actions_queue';
+const BENCHMARK_WATCH_PCT = 0.15;
+const BENCHMARK_ALERT_PCT = 0.30;
 /** Multiplicador no investimento Meta (ex.: imposto/IOF sobre trafego). */
 const META_SPEND_TAX_MULTIPLIER = 1.1215;
 const OFFER_CATEGORIES = ['Produto Principal','Order Bump 1','Order Bump 2','Upsell','Ignorar'];
@@ -698,10 +723,11 @@ function getConfig() {
     dateFrom: saved.dateFrom || '',
     dateTo: saved.dateTo || '',
     statusFilter: saved.statusFilter || 'paid',
-    insightsTargetType: saved.insightsTargetType || 'lucro',
-    insightsTargetValue: saved.insightsTargetValue || '10000',
     includeTrafficTax: saved.includeTrafficTax === true,
-    comparisonMode: saved.comparisonMode || 'mtd_avg'
+    comparisonMode: saved.comparisonMode || 'mtd_avg',
+    benchmarkWindowDays: saved.benchmarkWindowDays || 30,
+    metricTargets: saved.metricTargets || {},
+    n8nWebhookUrl: saved.n8nWebhookUrl || ''
   };
 }
 
@@ -723,10 +749,35 @@ function populateConfigUI(cfg) {
   if ($('filterFunnel')) $('filterFunnel').value = cfg.selectedFunnel || 'ALL';
   if ($('filterComparison')) $('filterComparison').value = cfg.comparisonMode || 'mtd_avg';
   toggleNameFields();
-  $('insightsTargetType').value = cfg.insightsTargetType || 'lucro';
-  $('insightsTargetValue').value = cfg.insightsTargetValue || '10000';
   const ft = $('filterTrafficTax');
   if (ft) ft.checked = !!cfg.includeTrafficTax;
+  const mt = cfg.metricTargets || {};
+  if ($('cfgTargetRoas')) $('cfgTargetRoas').value = mt.roas?.min != null ? String(mt.roas.min) : '';
+  if ($('cfgTargetCpaPrincipal')) $('cfgTargetCpaPrincipal').value = mt.cpaPrincipal?.max != null ? String(mt.cpaPrincipal.max) : '';
+  if ($('cfgTargetTakeOB1')) $('cfgTargetTakeOB1').value = mt.takeRateOB1?.min != null ? String(mt.takeRateOB1.min * 100) : '';
+  if ($('cfgTargetMonthlyProfit')) $('cfgTargetMonthlyProfit').value = mt.monthlyProfit?.min != null ? String(mt.monthlyProfit.min) : '';
+  if ($('cfgN8nWebhookUrl')) $('cfgN8nWebhookUrl').value = cfg.n8nWebhookUrl || '';
+  if ($('diagBenchmarkWindow')) $('diagBenchmarkWindow').value = String(cfg.benchmarkWindowDays || 30);
+}
+
+function parseTargetInput(raw) {
+  const v = String(raw || '').trim();
+  if (!v) return null;
+  const n = parseFloat(v.replace(/\./g, '').replace(',', '.'));
+  return isNaN(n) ? null : n;
+}
+
+function readMetricTargetsFromUI() {
+  const t = {};
+  const roas = parseTargetInput($('cfgTargetRoas')?.value);
+  if (roas != null) t.roas = { min: roas };
+  const cpa = parseTargetInput($('cfgTargetCpaPrincipal')?.value);
+  if (cpa != null) t.cpaPrincipal = { max: cpa };
+  const ob1 = parseTargetInput($('cfgTargetTakeOB1')?.value);
+  if (ob1 != null) t.takeRateOB1 = { min: ob1 / 100 };
+  const profit = parseTargetInput($('cfgTargetMonthlyProfit')?.value);
+  if (profit != null) t.monthlyProfit = { min: profit };
+  return t;
 }
 
 function readConfigFromUI() {
@@ -747,10 +798,11 @@ function readConfigFromUI() {
     dateFrom: $('cfgDateFrom').value,
     dateTo: $('cfgDateTo').value,
     statusFilter: $('cfgStatus').value,
-    insightsTargetType: $('insightsTargetType').value,
-    insightsTargetValue: $('insightsTargetValue').value,
     includeTrafficTax: $('filterTrafficTax') ? $('filterTrafficTax').checked : false,
-    comparisonMode: $('filterComparison') ? $('filterComparison').value : 'mtd_avg'
+    comparisonMode: $('filterComparison') ? $('filterComparison').value : 'mtd_avg',
+    benchmarkWindowDays: $('diagBenchmarkWindow') ? parseInt($('diagBenchmarkWindow').value, 10) || 30 : (loadConfig().benchmarkWindowDays || 30),
+    metricTargets: readMetricTargetsFromUI(),
+    n8nWebhookUrl: $('cfgN8nWebhookUrl') ? $('cfgN8nWebhookUrl').value.trim() : ''
   };
 }
 
@@ -1214,7 +1266,33 @@ function groupByCreative(vendas, meta, cfg) {
       if (matched) attribMetaRowFromVenda(matched, v, offerMap);
     });
   }
-  return Object.values(ads).sort((a, b) => b.sales - a.sales).slice(0, 10);
+  const sorted = Object.values(ads).sort((a, b) => b.spend - a.spend || b.sales - a.sales);
+  return sorted.slice(0, 10);
+}
+
+function groupByCreativeAll(vendas, meta, cfg) {
+  const offerMap = cfg.offerMap || {};
+  const ads = {};
+  meta.forEach(m => {
+    const name = String(m.ad_name || '').trim();
+    if (!name) return;
+    if (!ads[name]) {
+      ads[name] = {
+        name, spend: 0, sales: 0, revenue: 0,
+        salesPrincipal: 0, salesOB1: 0, salesOB2: 0, salesUpsell: 0
+      };
+    }
+    ads[name].spend += m._spend;
+  });
+  if (cfg.matchMethod === 'name') {
+    const utmCol = cfg.utmAd || 'utm_content';
+    vendas.forEach(v => {
+      if (v._source !== 'Meta_Ads') return;
+      const matched = findBestMetaStringMatch(v[utmCol], Object.values(ads), a => a.name);
+      if (matched) attribMetaRowFromVenda(matched, v, offerMap);
+    });
+  }
+  return Object.values(ads).sort((a, b) => b.spend - a.spend);
 }
 
 function groupBySource(vendas) {
@@ -1400,6 +1478,432 @@ function renderComparisonRangeHint(ctx) {
   const suffix = ctx.mode === 'mtd_avg' ? ' (media diaria MTD)' : '';
   el.textContent = ctx.from + ' a ' + ctx.to + suffix;
   el.title = 'Referencia: ' + ctx.from + ' a ' + ctx.to + suffix;
+}
+
+/* ============================================================
+   BENCHMARK ENGINE
+   ============================================================ */
+function resolveBenchmarkBaselineRange(cfg, byDay) {
+  const windowDays = Math.max(1, parseInt(cfg.benchmarkWindowDays, 10) || 30);
+  const { from } = resolvePrimaryPeriod(cfg, byDay);
+  const baselineTo = addDaysISO(from, -1);
+  const baselineFrom = addDaysISO(from, -windowDays);
+  return { from: baselineFrom, to: baselineTo, windowDays };
+}
+
+function scoreDeviation(current, baseline, direction, target) {
+  if (current == null || isNaN(current)) {
+    return { status: 'ok', deltaPct: null, targetStatus: null, targetNote: '' };
+  }
+  let status = 'ok';
+  let deltaPct = null;
+  if (baseline != null && !isNaN(baseline) && baseline !== 0) {
+    deltaPct = (current - baseline) / Math.abs(baseline);
+    const adverse = direction === 'higher'
+      ? deltaPct < -BENCHMARK_WATCH_PCT
+      : deltaPct > BENCHMARK_WATCH_PCT;
+    const severe = direction === 'higher'
+      ? deltaPct < -BENCHMARK_ALERT_PCT
+      : deltaPct > BENCHMARK_ALERT_PCT;
+    if (severe) status = 'alert';
+    else if (adverse) status = 'watch';
+  }
+  let targetStatus = null;
+  let targetNote = '';
+  if (target) {
+    if (target.min != null && current < target.min) {
+      targetStatus = 'below';
+      targetNote = 'Meta min: ' + (target.min);
+      status = 'alert';
+    }
+    if (target.max != null && current > target.max) {
+      targetStatus = 'above';
+      targetNote = 'Meta max: ' + (target.max);
+      status = 'alert';
+    }
+  }
+  return { status, deltaPct, targetStatus, targetNote };
+}
+
+function statusBadge(status) {
+  if (status === 'alert') return '<span class="badge risk">Alerta</span>';
+  if (status === 'watch') return '<span class="badge attn">Atencao</span>';
+  return '<span class="badge ok">OK</span>';
+}
+
+function fmtMetricValue(val, fmt) {
+  if (val == null || isNaN(val)) return '—';
+  if (fmt === 'brl') return fmtBRL(val);
+  if (fmt === 'pct') return fmtPct(val);
+  if (fmt === 'ratio') return val.toFixed(2);
+  if (fmt === 'num') return fmtNum(Math.round(val));
+  return String(val);
+}
+
+function buildBenchmarkMetricDefs(kpi, nDaysCurrent, targets) {
+  const monthlyProfit = nDaysCurrent > 0 ? (kpi.profit / nDaysCurrent) * 30 : null;
+  const t = targets || {};
+  return [
+    { id: 'totalRevenue', label: 'Faturamento (media/dia)', get: () => nDaysCurrent > 0 ? kpi.totalRevenue / nDaysCurrent : null, fmt: 'brl', direction: 'higher' },
+    { id: 'totalSpend', label: 'Investimento (media/dia)', get: () => nDaysCurrent > 0 ? kpi.totalSpend / nDaysCurrent : null, fmt: 'brl', direction: 'lower' },
+    { id: 'profit', label: 'Lucro (media/dia)', get: () => nDaysCurrent > 0 ? kpi.profit / nDaysCurrent : null, fmt: 'brl', direction: 'higher' },
+    { id: 'monthlyProfit', label: 'Lucro projetado /mes', get: () => monthlyProfit, fmt: 'brl', direction: 'higher', target: t.monthlyProfit },
+    { id: 'roas', label: 'ROAS', get: () => kpi.roas, fmt: 'ratio', direction: 'higher', target: t.roas },
+    { id: 'principalSales', label: 'Vendas principal (media/dia)', get: () => nDaysCurrent > 0 ? kpi.principalSales / nDaysCurrent : null, fmt: 'num', direction: 'higher' },
+    { id: 'cpaPrincipal', label: 'CPA principal', get: () => kpi.cpaPrincipal, fmt: 'brl', direction: 'lower', target: t.cpaPrincipal },
+    { id: 'ticketMedio', label: 'Ticket medio', get: () => kpi.ticketMedio, fmt: 'brl', direction: 'higher' },
+    { id: 'takeRateOB1', label: 'Take rate OB1', get: () => kpi.takeRateOB1, fmt: 'pct', direction: 'higher', target: t.takeRateOB1 },
+    { id: 'takeRateOB2', label: 'Take rate OB2', get: () => kpi.takeRateOB2, fmt: 'pct', direction: 'higher' },
+    { id: 'refundRatePrincipal', label: 'Taxa reembolso principal', get: () => kpi.refundRatePrincipal, fmt: 'pct', direction: 'lower' },
+    { id: 'ctr', label: 'CTR', get: () => kpi.ctr, fmt: 'pct', direction: 'higher' },
+    { id: 'connectRate', label: 'Connect rate', get: () => kpi.connectRate, fmt: 'pct', direction: 'higher' },
+    { id: 'icPerLpv', label: 'IC / LPV', get: () => kpi.icPerLpv, fmt: 'pct', direction: 'higher' },
+    { id: 'convPageMeta', label: 'Conv. pagina Meta', get: () => kpi.convPageMeta, fmt: 'pct', direction: 'higher' },
+    { id: 'convCheckoutMeta', label: 'Conv. checkout Meta', get: () => kpi.convCheckoutMeta, fmt: 'pct', direction: 'higher' }
+  ];
+}
+
+function computeBaselineDailyAverages(rawVendas, rawMeta, cfg, baselineRange) {
+  const bCfg = { ...cfg, dateFrom: baselineRange.from, dateTo: baselineRange.to };
+  const bData = processData(rawVendas, rawMeta, bCfg);
+  const nDays = inclusiveCalendarDaysISO(baselineRange.from, baselineRange.to);
+  const bk = bData.kpi;
+  if (!nDays || !bk) return null;
+  return {
+    nDays,
+    kpi: bk,
+    daily: {
+      totalRevenue: bk.totalRevenue / nDays,
+      totalSpend: bk.totalSpend / nDays,
+      profit: bk.profit / nDays,
+      monthlyProfit: (bk.profit / nDays) * 30,
+      principalSales: bk.principalSales / nDays
+    }
+  };
+}
+
+function getBaselineValueForMetric(metricId, baseline) {
+  if (!baseline) return null;
+  const bk = baseline.kpi;
+  const map = {
+    totalRevenue: baseline.daily.totalRevenue,
+    totalSpend: baseline.daily.totalSpend,
+    profit: baseline.daily.profit,
+    monthlyProfit: baseline.daily.monthlyProfit,
+    roas: bk.roas,
+    principalSales: baseline.daily.principalSales,
+    cpaPrincipal: bk.cpaPrincipal,
+    ticketMedio: bk.ticketMedio,
+    takeRateOB1: bk.takeRateOB1,
+    takeRateOB2: bk.takeRateOB2,
+    refundRatePrincipal: bk.refundRatePrincipal,
+    ctr: bk.ctr,
+    connectRate: bk.connectRate,
+    icPerLpv: bk.icPerLpv,
+    convPageMeta: bk.convPageMeta,
+    convCheckoutMeta: bk.convCheckoutMeta
+  };
+  return map[metricId] != null ? map[metricId] : null;
+}
+
+function computeBenchmarkContext(rawVendas, rawMeta, cfg, finalData) {
+  const byDay = finalData.byDay;
+  const kpi = finalData.kpi;
+  const { from, to } = resolvePrimaryPeriod(cfg, byDay);
+  const nDaysCurrent = filterPeriodDayCount(cfg, byDay);
+  const baselineRange = resolveBenchmarkBaselineRange(cfg, byDay);
+  const baseline = computeBaselineDailyAverages(rawVendas, rawMeta, cfg, baselineRange);
+  const targets = cfg.metricTargets || {};
+  const defs = buildBenchmarkMetricDefs(kpi, nDaysCurrent, targets);
+  const metrics = defs.map(def => {
+    const current = def.get();
+    const baselineVal = getBaselineValueForMetric(def.id, baseline);
+    const scored = scoreDeviation(current, baselineVal, def.direction, def.target);
+    return {
+      id: def.id,
+      label: def.label,
+      current,
+      baseline: baselineVal,
+      fmt: def.fmt,
+      direction: def.direction,
+      deltaPct: scored.deltaPct,
+      status: scored.status,
+      targetNote: scored.targetNote
+    };
+  });
+  const alerts = metrics.filter(m => m.status === 'alert');
+  const watches = metrics.filter(m => m.status === 'watch');
+  return {
+    period: { from, to, nDays: nDaysCurrent },
+    baselineRange,
+    baseline,
+    metrics,
+    alerts,
+    watches,
+    targets
+  };
+}
+
+function classifyEntityOutliers(entities, minSpend) {
+  const withSpend = (entities || []).filter(e => (e.spend || 0) >= (minSpend || 30));
+  if (!withSpend.length) return [];
+  const roasList = withSpend.map(e => (e.spend > 0 ? e.revenue / e.spend : null)).filter(r => r != null && !isNaN(r));
+  const avgRoas = roasList.length ? roasList.reduce((a, b) => a + b, 0) / roasList.length : 0;
+  const spendSorted = [...withSpend].sort((a, b) => b.spend - a.spend);
+  const spendThreshold = spendSorted[Math.floor(spendSorted.length * 0.25)]?.spend || 0;
+  return withSpend.map(e => {
+    const roas = e.spend > 0 ? e.revenue / e.spend : null;
+    let status = 'ok';
+    let actionHint = 'Manter';
+    if (roas != null && roas < avgRoas * 0.7 && e.spend >= spendThreshold) {
+      status = 'alert';
+      actionHint = 'Pausar ou recriar';
+    } else if (roas != null && roas > avgRoas * 1.1 && (e.salesPrincipal || 0) > 0) {
+      status = 'ok';
+      actionHint = 'Escalar';
+    } else if (roas != null && roas < avgRoas) {
+      status = 'watch';
+      actionHint = 'Otimizar';
+    }
+    return { ...e, roas, avgRoas, status, actionHint };
+  }).filter(e => e.status !== 'ok' || (e.roas != null && e.roas > avgRoas * 1.1))
+    .sort((a, b) => b.spend - a.spend)
+    .slice(0, 25);
+}
+
+function renderDiagnostico(benchCtx, finalData) {
+  if (!benchCtx) return;
+  const alertN = benchCtx.alerts.length;
+  const watchN = benchCtx.watches.length;
+  $('diagSummaryMount').innerHTML = `
+    <div class="diag-summary-card"><div class="ds-label">Alertas</div><div class="ds-val down">${alertN}</div></div>
+    <div class="diag-summary-card"><div class="ds-label">Atencao</div><div class="ds-val warn">${watchN}</div></div>
+    <div class="diag-summary-card"><div class="ds-label">Benchmark</div><div class="ds-val" style="font-size:14px;">${benchCtx.baselineRange.from} a ${benchCtx.baselineRange.to}</div></div>
+    <div class="diag-summary-card"><div class="ds-label">Periodo atual</div><div class="ds-val" style="font-size:14px;">${benchCtx.period.from} a ${benchCtx.period.to}</div></div>
+  `;
+  const mHead = '<tr><th>Metrica</th><th class="r">Atual</th><th class="r">Media hist.</th><th class="r">Delta</th><th class="r">Meta</th><th>Status</th></tr>';
+  const mRows = benchCtx.metrics.map(m => {
+    const delta = m.deltaPct != null ? ((m.deltaPct >= 0 ? '+' : '') + (m.deltaPct * 100).toFixed(1).replace('.', ',') + '%') : '—';
+    const deltaCls = m.direction === 'higher'
+      ? (m.deltaPct > 0 ? 'up' : m.deltaPct < 0 ? 'down' : '')
+      : (m.deltaPct < 0 ? 'up' : m.deltaPct > 0 ? 'down' : '');
+    const targetTxt = m.targetNote || '—';
+    return `<tr><td>${esc(m.label)}</td><td class="r">${fmtMetricValue(m.current, m.fmt)}</td><td class="r">${fmtMetricValue(m.baseline, m.fmt)}</td><td class="r ${deltaCls}">${delta}</td><td class="r" style="font-size:11px;">${esc(targetTxt)}</td><td>${statusBadge(m.status)}</td></tr>`;
+  }).join('');
+  $('tableDiagMetrics').innerHTML = `<thead>${mHead}</thead><tbody>${mRows}</tbody>`;
+
+  const renderEntityTable = (entities, tableId, nameCol) => {
+    const rows = classifyEntityOutliers(entities, 30);
+    const head = `<tr><th>${nameCol}</th><th class="r">Invest.</th><th class="r">Fat.</th><th class="r">ROAS</th><th class="r">V. princ.</th><th>Sugestao</th><th>Status</th></tr>`;
+    if (!rows.length) {
+      $(tableId).innerHTML = `<thead>${head}</thead><tbody><tr><td colspan="7">Nenhum outlier relevante no periodo.</td></tr></tbody>`;
+      return;
+    }
+    const body = rows.map(e => `<tr><td>${esc(e.name)}</td><td class="r">${fmtBRL(e.spend)}</td><td class="r">${fmtBRL(e.revenue)}</td><td class="r" style="color:${roasColor(e.roas)}">${e.roas != null ? e.roas.toFixed(2) : '—'}</td><td class="r">${fmtNum(e.salesPrincipal || 0)}</td><td>${esc(e.actionHint)}</td><td>${statusBadge(e.status)}</td></tr>`).join('');
+    $(tableId).innerHTML = `<thead>${head}</thead><tbody>${body}</tbody>`;
+  };
+  renderEntityTable(finalData.byCampaign, 'tableDiagCampaigns', 'Campanha');
+  renderEntityTable(finalData.byAdset, 'tableDiagAdsets', 'Conjunto');
+  renderEntityTable(finalData.byCreative, 'tableDiagCreatives', 'Criativo');
+}
+
+function buildAnalysisContext(cfg, finalData, benchCtx, rawVendas, rawMeta) {
+  const creativesAll = groupByCreativeAll(finalData.vendas, finalData.meta, cfg);
+  const topCampaigns = (finalData.byCampaign || []).filter(c => c.spend > 0).slice(0, 30);
+  const topAdsets = (finalData.byAdset || []).filter(c => c.spend > 0).slice(0, 30);
+  const topCreatives = creativesAll.filter(c => c.spend > 0).slice(0, 40);
+  return {
+    exportedAt: new Date().toISOString(),
+    cliente: cfg.clientName,
+    periodo: benchCtx.period,
+    funil: cfg.selectedFunnel || 'ALL',
+    matchMethod: cfg.matchMethod,
+    benchmark: {
+      janela: benchCtx.baselineRange,
+      metricas: benchCtx.metrics,
+      alertas: benchCtx.alerts.map(m => m.id),
+      atencao: benchCtx.watches.map(m => m.id)
+    },
+    metas: cfg.metricTargets || {},
+    kpi: finalData.kpi,
+    porDia: (finalData.byDay || []).map(d => ({
+      date: d.date, revenue: d.revenue, spend: d.spend,
+      salesPrincipal: d.salesPrincipal, salesOB1: d.salesOB1, salesOB2: d.salesOB2
+    })),
+    campanhas: topCampaigns.map(c => ({
+      name: c.name, cid: c.cid, spend: c.spend, revenue: c.revenue,
+      sales: c.sales, salesPrincipal: c.salesPrincipal,
+      roas: c.spend > 0 ? c.revenue / c.spend : null
+    })),
+    conjuntos: topAdsets.map(s => ({
+      name: s.name, spend: s.spend, revenue: s.revenue,
+      sales: s.sales, salesPrincipal: s.salesPrincipal,
+      roas: s.spend > 0 ? s.revenue / s.spend : null
+    })),
+    criativos: topCreatives.map(a => ({
+      name: a.name, spend: a.spend, revenue: a.revenue,
+      sales: a.sales, salesPrincipal: a.salesPrincipal,
+      roas: a.spend > 0 ? a.revenue / a.spend : null
+    })),
+    fontes: finalData.bySource,
+    outliers: {
+      campanhas: classifyEntityOutliers(finalData.byCampaign, 30),
+      conjuntos: classifyEntityOutliers(finalData.byAdset, 30),
+      criativos: classifyEntityOutliers(creativesAll, 20)
+    }
+  };
+}
+
+function exportAnalysisPayload() {
+  const ctx = window._analysisContext;
+  if (!ctx) {
+    showStatus('Carregue os dados antes de exportar.', 'err');
+    return null;
+  }
+  const json = JSON.stringify(ctx, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const slug = (ctx.cliente || 'perpetuo').replace(/\s+/g, '-').toLowerCase();
+  a.download = `analise-perpetuo-${slug}-${ctx.periodo?.from || 'export'}.json`;
+  a.click();
+  showStatus('JSON exportado.', 'ok');
+  return ctx;
+}
+
+async function copyAnalysisPayload() {
+  const ctx = window._analysisContext;
+  if (!ctx) { showStatus('Carregue os dados antes de copiar.', 'err'); return; }
+  try {
+    await navigator.clipboard.writeText(JSON.stringify(ctx, null, 2));
+    showStatus('JSON copiado para a area de transferencia.', 'ok');
+  } catch {
+    showStatus('Nao foi possivel copiar. Use Exportar.', 'err');
+  }
+}
+
+/* ============================================================
+   ACTIONS QUEUE
+   ============================================================ */
+function loadActionsQueue() {
+  try { return JSON.parse(localStorage.getItem(ACTIONS_QUEUE_KEY)) || []; } catch { return []; }
+}
+function saveActionsQueue(queue) {
+  localStorage.setItem(ACTIONS_QUEUE_KEY, JSON.stringify(queue));
+}
+
+function normalizeImportedActions(raw) {
+  let list = raw;
+  if (raw && raw.actions && Array.isArray(raw.actions)) list = raw.actions;
+  if (!Array.isArray(list)) return [];
+  return list.map((a, i) => ({
+    id: a.id || ('act-' + Date.now() + '-' + i),
+    entityType: a.entityType || 'campaign',
+    entityName: a.entityName || a.title || '—',
+    entityId: a.entityId || '',
+    action: a.action || 'test',
+    params: a.params || {},
+    rationale: a.rationale || a.detail || '',
+    estimatedImpactBRL: a.estimatedImpactBRL ?? a.impact ?? null,
+    confidence: a.confidence || 'medium',
+    status: a.status || 'proposed'
+  }));
+}
+
+function renderActionsQueue() {
+  const mount = $('actionsQueueMount');
+  if (!mount) return;
+  const queue = loadActionsQueue();
+  if (!queue.length) {
+    mount.innerHTML = '<p style="font-size:12px;color:var(--muted);">Nenhuma acao na fila.</p>';
+    return;
+  }
+  mount.innerHTML = queue.map((a, idx) => {
+    const st = a.status || 'proposed';
+    const cls = st === 'approved' ? 'approved' : st === 'done' ? 'done' : '';
+    const impact = a.estimatedImpactBRL != null ? fmtBRL(a.estimatedImpactBRL) : '—';
+    return `<div class="action-queue-item ${cls}" data-idx="${idx}">
+      <input type="checkbox" class="action-check" data-idx="${idx}" ${st === 'approved' || st === 'done' ? 'checked disabled' : ''} />
+      <div class="action-queue-body">
+        <strong>${esc(a.action)} — ${esc(a.entityName)}</strong>
+        <span>${esc(a.rationale)}</span>
+        <span style="display:block;margin-top:4px;">Tipo: ${esc(a.entityType)} · Confianca: ${esc(a.confidence)}</span>
+      </div>
+      <div class="action-queue-meta">${impact}/mes est.</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        ${st === 'proposed' ? `<button type="button" class="quick-btn btn-approve-action" data-idx="${idx}">Aprovar</button>` : ''}
+        ${st === 'approved' ? `<button type="button" class="quick-btn btn-done-action" data-idx="${idx}">Concluida</button>` : ''}
+        ${st !== 'done' ? `<button type="button" class="quick-btn btn-skip-action" data-idx="${idx}" style="color:var(--muted);">Ignorar</button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+  mount.querySelectorAll('.btn-approve-action').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const q = loadActionsQueue();
+      const i = parseInt(btn.dataset.idx, 10);
+      if (q[i]) { q[i].status = 'approved'; saveActionsQueue(q); renderActionsQueue(); }
+    });
+  });
+  mount.querySelectorAll('.btn-done-action').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const q = loadActionsQueue();
+      const i = parseInt(btn.dataset.idx, 10);
+      if (q[i]) { q[i].status = 'done'; q[i].completedAt = new Date().toISOString(); saveActionsQueue(q); renderActionsQueue(); }
+    });
+  });
+  mount.querySelectorAll('.btn-skip-action').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const q = loadActionsQueue();
+      const i = parseInt(btn.dataset.idx, 10);
+      if (q[i]) { q[i].status = 'skipped'; saveActionsQueue(q); renderActionsQueue(); }
+    });
+  });
+}
+
+function importActionsFromText() {
+  const raw = $('actionsImportText').value.trim();
+  if (!raw) return;
+  try {
+    const parsed = JSON.parse(raw);
+    const incoming = normalizeImportedActions(parsed);
+    if (!incoming.length) { showStatus('Nenhuma acao valida no JSON.', 'err'); return; }
+    const queue = loadActionsQueue().concat(incoming);
+    saveActionsQueue(queue);
+    $('actionsImportText').value = '';
+    renderActionsQueue();
+    showStatus(incoming.length + ' acao(oes) importada(s).', 'ok');
+  } catch (e) {
+    showStatus('JSON invalido: ' + e.message, 'err');
+  }
+}
+
+function exportApprovedActions() {
+  const approved = loadActionsQueue().filter(a => a.status === 'approved' || a.status === 'done');
+  if (!approved.length) { showStatus('Nenhuma acao aprovada.', 'err'); return; }
+  const blob = new Blob([JSON.stringify({ actions: approved, exportedAt: new Date().toISOString() }, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'acoes-aprovadas-perpetuo.json';
+  a.click();
+}
+
+async function sendApprovedToN8n() {
+  const cfg = readConfigFromUI();
+  const url = cfg.n8nWebhookUrl;
+  if (!url) { showStatus('Configure o webhook n8n na configuracao.', 'err'); return; }
+  const approved = loadActionsQueue().filter(a => a.status === 'approved');
+  if (!approved.length) { showStatus('Nenhuma acao com status aprovado.', 'err'); return; }
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cliente: cfg.clientName, actions: approved, sentAt: new Date().toISOString() })
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    showStatus('Enviado para n8n (' + approved.length + ' acoes).', 'ok');
+  } catch (e) {
+    showStatus('Falha ao enviar n8n: ' + e.message, 'err');
+  }
 }
 
 function funnelCostsFromKpi(k) {
@@ -1810,34 +2314,52 @@ function setDashboardView(view) {
   const main = $('dashboardMainView');
   const funnel = $('funnelView');
   const recentSales = $('recentSalesView');
+  const diagnostico = $('diagnosticoView');
+  const actions = $('actionsView');
   const tabMain = $('tabMain');
   const tabFunnel = $('tabFunnel');
   const tabRecentSales = $('tabRecentSales');
-  if (view === 'funnel') {
+  const tabDiagnostico = $('tabDiagnostico');
+  const tabActions = $('tabActions');
+  const allTabs = [tabMain, tabFunnel, tabRecentSales, tabDiagnostico, tabActions];
+  const hideAll = () => {
     main.style.display = 'none';
-    funnel.style.display = 'block';
+    funnel.style.display = 'none';
     recentSales.style.display = 'none';
-    tabMain.classList.remove('active');
+    if (diagnostico) diagnostico.style.display = 'none';
+    if (actions) actions.style.display = 'none';
+    allTabs.forEach(t => { if (t) t.classList.remove('active'); });
+  };
+  if (view === 'funnel') {
+    hideAll();
+    funnel.style.display = 'block';
     tabFunnel.classList.add('active');
-    tabRecentSales.classList.remove('active');
     if (window._lastFinalData && window._lastFinalData.byDay) {
       renderFunnelChart(window._lastFinalData.byDay);
     }
   } else if (view === 'recentSales') {
-    main.style.display = 'none';
-    funnel.style.display = 'none';
+    hideAll();
     recentSales.style.display = 'block';
-    tabMain.classList.remove('active');
-    tabFunnel.classList.remove('active');
     tabRecentSales.classList.add('active');
     destroyFunnelChart();
+  } else if (view === 'diagnostico') {
+    hideAll();
+    if (diagnostico) diagnostico.style.display = 'block';
+    tabDiagnostico.classList.add('active');
+    destroyFunnelChart();
+    if (window._benchCtx && window._lastFinalData) {
+      renderDiagnostico(window._benchCtx, window._lastFinalData);
+    }
+  } else if (view === 'actions') {
+    hideAll();
+    if (actions) actions.style.display = 'block';
+    tabActions.classList.add('active');
+    destroyFunnelChart();
+    renderActionsQueue();
   } else {
+    hideAll();
     main.style.display = 'block';
-    funnel.style.display = 'none';
-    recentSales.style.display = 'none';
     tabMain.classList.add('active');
-    tabFunnel.classList.remove('active');
-    tabRecentSales.classList.remove('active');
     destroyFunnelChart();
   }
 }
@@ -2084,267 +2606,6 @@ function renderSplit(kpi, byCampaign, bySource) {
   $('splitWhy').innerHTML = why.join('');
 }
 
-/* ============================================================
-   INSIGHTS & ESCALA ENGINE
-   ============================================================ */
-function generateInsights(finalData, cfg) {
-  const targetType = $('insightsTargetType').value;
-  const targetValue = parseFloat(String($('insightsTargetValue').value).replace(/\./g,'').replace(',','.')) || 10000;
-
-  const kpi = finalData.kpi;
-  const byDay = finalData.byDay;
-  const byCreative = finalData.byCreative;
-  const bySource = finalData.bySource;
-  const vendas = finalData.vendas;
-
-  const totalPlatformFee = kpi.totalPlatformFee || 0;
-
-  /* --- a) Projection engine --- */
-  const activeDays = byDay.filter(d => d.revenue > 0 || d.spend > 0).length;
-  const daysForProjection = Math.max(activeDays, 1);
-  const avgRevenue = kpi.totalRevenue / daysForProjection;
-  const avgSpend = kpi.totalSpend / daysForProjection;
-  const avgSales = kpi.totalSales / daysForProjection;
-  const avgPlatformFee = totalPlatformFee / daysForProjection;
-  const avgProfit = avgRevenue - avgSpend;
-
-  const proj30 = {
-    revenue: avgRevenue * 30,
-    spend: avgSpend * 30,
-    platformFee: avgPlatformFee * 30,
-    profit: avgProfit * 30,
-    sales: avgSales * 30
-  };
-
-  /* --- b) Gap analysis --- */
-  const currentMetric = targetType === 'lucro' ? proj30.profit : proj30.revenue;
-  const pctAchieved = targetValue > 0 ? Math.min(currentMetric / targetValue, 2) : 0;
-  const gap = targetValue - currentMetric;
-  const multiplier = currentMetric > 0 ? targetValue / currentMetric : Infinity;
-
-  /* --- c) Creative audit --- */
-  const creativesWithSpend = byCreative.filter(c => c.spend > 0);
-  const avgRoas = creativesWithSpend.reduce((s,c) => s + c.spend, 0) > 0
-    ? creativesWithSpend.reduce((s,c) => s + c.revenue, 0) / creativesWithSpend.reduce((s,c) => s + c.spend, 0)
-    : 0;
-
-  const tiers = { winners: [], mediocre: [], losers: [] };
-  creativesWithSpend.forEach(c => {
-    const roas = c.spend > 0 ? c.revenue / c.spend : 0;
-    const obj = { ...c, roas };
-    if (roas > avgRoas && c.revenue > 0) tiers.winners.push(obj);
-    else if (roas >= 0.5 && c.revenue > 0) tiers.mediocre.push(obj);
-    else tiers.losers.push(obj);
-  });
-  tiers.winners.sort((a,b) => b.roas - a.roas);
-  tiers.mediocre.sort((a,b) => b.roas - a.roas);
-  tiers.losers.sort((a,b) => b.spend - a.spend);
-
-  const wastedSpend = tiers.losers.reduce((s,c) => s + c.spend, 0);
-  const winnerAvgRoas = tiers.winners.reduce((s,c) => s + c.spend, 0) > 0
-    ? tiers.winners.reduce((s,c) => s + c.revenue, 0) / tiers.winners.reduce((s,c) => s + c.spend, 0)
-    : avgRoas;
-  const reallocRevenue = wastedSpend * winnerAvgRoas;
-  const wastedMonthly = (wastedSpend / daysForProjection) * 30;
-  const reallocMonthly = (reallocRevenue / daysForProjection) * 30;
-
-  /* --- d) Day-of-week analysis --- */
-  const DOW_NAMES = ['Dom','Seg','Ter','Qua','Qui','Sex','Sab'];
-  const dowStats = Array.from({length:7}, () => ({revenue:0, spend:0, sales:0, count:0}));
-  byDay.forEach(d => {
-    const dt = new Date(d.date + 'T12:00:00');
-    const dow = dt.getDay();
-    dowStats[dow].revenue += d.revenue;
-    dowStats[dow].spend += d.spend;
-    const daySales = (d.salesPrincipal||0) + (d.salesOB1||0) + (d.salesOB2||0) + (d.salesOther||0);
-    dowStats[dow].sales += daySales;
-    dowStats[dow].count++;
-  });
-  dowStats.forEach(d => {
-    d.avgRevenue = d.count > 0 ? d.revenue / d.count : 0;
-    d.avgSales = d.count > 0 ? d.sales / d.count : 0;
-  });
-
-  const bestDow = dowStats.reduce((best, d, i) => d.avgRevenue > (dowStats[best]?.avgRevenue || 0) ? i : best, 0);
-  const worstDow = dowStats.reduce((worst, d, i) => (d.count > 0 && d.avgRevenue < (dowStats[worst]?.avgRevenue || Infinity)) ? i : worst, 0);
-
-  /* --- e) Source analysis --- */
-  const organicRevenue = bySource.filter(s => s.source !== 'Meta_Ads').reduce((sum,s) => sum + s.revenue, 0);
-  const organicSales = bySource.filter(s => s.source !== 'Meta_Ads').reduce((sum,s) => sum + s.sales, 0);
-  const organicPct = kpi.totalRevenue > 0 ? organicRevenue / kpi.totalRevenue : 0;
-  const organicProfit = organicRevenue;
-
-  /* --- f) Action plan --- */
-  const actions = [];
-
-  if (wastedSpend > 10) {
-    const loserNames = tiers.losers.map(c => c.name).slice(0,4).join(', ');
-    const monthlySave = wastedMonthly;
-    actions.push({
-      title: `Pausar criativos ineficientes`,
-      detail: `Pausar ${tiers.losers.length} criativo(s): ${loserNames}`,
-      impact: monthlySave,
-      type: 'save'
-    });
-  }
-
-  tiers.winners.slice(0,3).forEach(c => {
-    const currentMonthly = (c.spend / daysForProjection) * 30;
-    const scaleTarget = currentMonthly * 2.5;
-    const addedSpend = scaleTarget - currentMonthly;
-    const addedRevenue = addedSpend * c.roas;
-    const addedProfit = addedRevenue - addedSpend;
-    if (addedProfit > 0) {
-      actions.push({
-        title: `Escalar ${c.name}`,
-        detail: `Aumentar de ${fmtBRL(currentMonthly)}/mes para ${fmtBRL(scaleTarget)}/mes (ROAS ${c.roas.toFixed(2)})`,
-        impact: addedProfit,
-        type: 'add'
-      });
-    }
-  });
-
-  if (bestDow !== worstDow && dowStats[bestDow].avgRevenue > dowStats[worstDow].avgRevenue * 1.3) {
-    const shiftPct = 0.20;
-    const dailySpendAvg = kpi.totalSpend / daysForProjection;
-    const shiftAmount = dailySpendAvg * shiftPct;
-    const revGain = shiftAmount * (dowStats[bestDow].avgRevenue / (dowStats[bestDow].spend / Math.max(dowStats[bestDow].count,1) || 1));
-    const estMonthly = Math.abs(revGain) * 4;
-    actions.push({
-      title: `Concentrar budget em ${DOW_NAMES[bestDow]}`,
-      detail: `Realocar 20% do budget de ${DOW_NAMES[worstDow]} para ${DOW_NAMES[bestDow]} (melhor dia: ${fmtBRL(dowStats[bestDow].avgRevenue)} medio/dia)`,
-      impact: estMonthly > 0 ? estMonthly : 100,
-      type: 'add'
-    });
-  }
-
-  if (gap > proj30.profit * 0.5) {
-    actions.push({
-      title: 'Testar aumento de preco ou novo Order Bump',
-      detail: `Gap de ${fmtBRL(gap)} exige alavancas estruturais: testar preco +30% ou adicionar upsell de ticket alto`,
-      impact: gap * 0.3,
-      type: 'test'
-    });
-  }
-
-  actions.sort((a,b) => b.impact - a.impact);
-
-  return {
-    targetType, targetValue, totalPlatformFee,
-    proj30, currentMetric, pctAchieved, gap, multiplier,
-    tiers, wastedSpend, wastedMonthly, winnerAvgRoas, reallocMonthly,
-    dowStats, bestDow, worstDow, DOW_NAMES,
-    organicRevenue, organicSales, organicPct, organicProfit,
-    actions, daysForProjection, avgRoas, kpi
-  };
-}
-
-function renderInsights(ins) {
-  const sec = $('insightsSection');
-  const targetLabel = ins.targetType === 'lucro' ? 'Lucro do Projeto' : 'Faturamento Liquido';
-  const pctNum = (ins.pctAchieved * 100);
-  const pctClamped = Math.min(pctNum, 100);
-  const progressColor = pctNum >= 100 ? 'var(--success)' : pctNum >= 60 ? 'var(--warning)' : 'var(--danger)';
-  const gapClass = ins.gap <= 0 ? 'up' : 'down';
-  const gapText = ins.gap <= 0 ? 'Meta atingida na projecao atual!' : `Faltam ${fmtBRL(ins.gap)} para a meta`;
-
-  let html = `<p class="section-title" style="display:flex;align-items:center;gap:8px;">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-04)" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-    Insights &amp; Escala — Meta: ${fmtBRL(ins.targetValue)} (${esc(targetLabel)})
-  </p>`;
-
-  /* Projection cards */
-  html += `<div class="ins-block"><div class="ins-block-title">Projecao Mensal (base: ${ins.daysForProjection} dias ativos)</div>
-  <div class="insights-grid">
-    <div class="insight-card"><div class="ic-label">Faturamento liq. /mes</div><div class="ic-value">${fmtBRL(ins.proj30.revenue)}</div><div class="ic-sub">${fmtBRL(ins.proj30.revenue/30)}/dia</div></div>
-    <div class="insight-card"><div class="ic-label">Investimento /mes</div><div class="ic-value">${fmtBRL(ins.proj30.spend)}</div><div class="ic-sub">${fmtBRL(ins.proj30.spend/30)}/dia</div></div>
-    <div class="insight-card"><div class="ic-label">Taxa plataforma /mes</div><div class="ic-value">${fmtBRL(ins.proj30.platformFee)}</div><div class="ic-sub">Deduzida do faturamento</div></div>
-    <div class="insight-card"><div class="ic-label">Lucro projetado /mes</div><div class="ic-value ${ins.proj30.profit >= 0 ? 'up' : 'down'}">${fmtBRL(ins.proj30.profit)}</div><div class="ic-sub">ROAS: ${ins.kpi.totalSpend > 0 ? (ins.kpi.totalRevenue/ins.kpi.totalSpend).toFixed(2) : '—'}</div></div>
-    <div class="insight-card"><div class="ic-label">Vendas /mes</div><div class="ic-value">${Math.round(ins.proj30.sales)}</div><div class="ic-sub">${(ins.proj30.sales/30).toFixed(1)}/dia</div></div>
-  </div></div>`;
-
-  /* Gap analysis */
-  html += `<div class="ins-block"><div class="ins-block-title">Gap Analysis — ${esc(targetLabel)}</div>
-  <div class="progress-label"><span>Projecao atual: ${fmtBRL(ins.currentMetric)}</span><span>Meta: ${fmtBRL(ins.targetValue)}</span></div>
-  <div class="progress-track"><div class="progress-fill" style="width:${pctClamped}%;background:${progressColor};">${pctNum.toFixed(0)}%</div></div>
-  <p style="font-size:13px;font-weight:600;" class="${gapClass}">${gapText}</p>
-  ${ins.gap > 0 ? `<p style="font-size:12px;color:var(--muted);margin-top:4px;">Multiplicador necessario: <strong>${ins.multiplier.toFixed(2)}x</strong> o resultado atual</p>` : ''}
-  </div>`;
-
-  /* Organic contribution */
-  html += `<div class="ins-block"><div class="ins-block-title">Contribuicao Organica</div>
-  <div class="insights-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));">
-    <div class="insight-card"><div class="ic-label">Revenue organico</div><div class="ic-value">${fmtBRL(ins.organicRevenue)}</div><div class="ic-sub">${(ins.organicPct*100).toFixed(1)}% do total</div></div>
-    <div class="insight-card"><div class="ic-label">Lucro organico /mes</div><div class="ic-value up">${fmtBRL((ins.organicProfit/ins.daysForProjection)*30)}</div><div class="ic-sub">Custo zero de aquisicao</div></div>
-    <div class="insight-card"><div class="ic-label">Vendas organicas</div><div class="ic-value">${ins.organicSales}</div><div class="ic-sub">${(ins.organicSales/ins.daysForProjection).toFixed(1)}/dia</div></div>
-  </div></div>`;
-
-  /* Creative audit */
-  html += `<div class="ins-block"><div class="ins-block-title">Auditoria de Criativos (ROAS medio: ${ins.avgRoas.toFixed(2)})</div>`;
-  if (ins.tiers.winners.length + ins.tiers.mediocre.length + ins.tiers.losers.length > 0) {
-    html += `<div class="overflow-x"><table style="font-size:12px;"><thead><tr><th>Criativo</th><th class="r">Invest.</th><th class="r">Revenue</th><th class="r">ROAS</th><th class="r">Vendas</th><th>Tier</th><th>Acao</th></tr></thead><tbody>`;
-    const renderRow = (c, tier, tierClass, action) =>
-      `<tr><td>${esc(c.name)}</td><td class="r">${fmtBRL(c.spend)}</td><td class="r">${fmtBRL(c.revenue)}</td><td class="r" style="color:${roasColor(c.roas)}">${c.roas.toFixed(2)}</td><td class="r">${c.sales}</td><td><span class="tier-tag ${tierClass}">${tier}</span></td><td style="font-size:11px;">${action}</td></tr>`;
-    ins.tiers.winners.forEach(c => { html += renderRow(c, 'Winner', 'tier-winner', 'Escalar 2-3x'); });
-    ins.tiers.mediocre.forEach(c => { html += renderRow(c, 'Otimizar', 'tier-mediocre', 'Testar variacao'); });
-    ins.tiers.losers.forEach(c => { html += renderRow(c, 'Pausar', 'tier-loser', 'Pausar ou recriar'); });
-    html += `</tbody></table></div>`;
-
-    if (ins.wastedSpend > 0) {
-      html += `<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:12px;">
-        <div style="font-size:12px;background:rgba(252,113,72,.08);padding:8px 14px;border-radius:8px;border:1px solid rgba(252,113,72,.2);">
-          Spend desperdicado: <strong style="color:var(--danger);">${fmtBRL(ins.wastedSpend)}</strong> no periodo (${fmtBRL(ins.wastedMonthly)}/mes)
-        </div>
-        <div style="font-size:12px;background:rgba(88,212,23,.08);padding:8px 14px;border-radius:8px;border:1px solid rgba(88,212,23,.2);">
-          Se realocar para winners (ROAS ${ins.winnerAvgRoas.toFixed(2)}): +${fmtBRL(ins.reallocMonthly)}/mes em receita
-        </div>
-      </div>`;
-    }
-  } else {
-    html += `<p style="font-size:12px;color:var(--muted);">Sem dados de criativos suficientes. Use metodo de match "nome" na configuracao.</p>`;
-  }
-  html += `</div>`;
-
-  /* Day-of-week heatmap */
-  html += `<div class="ins-block"><div class="ins-block-title">Padrao Semanal</div><div class="dow-grid">`;
-  const maxDowRev = Math.max(...ins.dowStats.map(d => d.avgRevenue), 1);
-  for (let i = 0; i < 7; i++) {
-    const d = ins.dowStats[i];
-    const intensity = d.avgRevenue / maxDowRev;
-    const bg = i === ins.bestDow ? 'rgba(88,212,23,.18)' : i === ins.worstDow ? 'rgba(252,113,72,.12)' : `rgba(23,150,212,${(intensity * 0.2).toFixed(2)})`;
-    const border = i === ins.bestDow ? 'var(--success)' : i === ins.worstDow ? 'var(--danger)' : 'var(--border)';
-    html += `<div class="dow-cell" style="background:${bg};border-color:${border};">
-      <div class="dow-day">${ins.DOW_NAMES[i]}</div>
-      <div class="dow-val">${fmtBRL(d.avgRevenue)}</div>
-      <div class="dow-sub">${d.avgSales.toFixed(1)} vendas/dia</div>
-    </div>`;
-  }
-  html += `</div>`;
-  html += `<p style="font-size:11px;color:var(--muted);">
-    Melhor dia: <strong style="color:var(--success);">${ins.DOW_NAMES[ins.bestDow]}</strong> (${fmtBRL(ins.dowStats[ins.bestDow].avgRevenue)}/dia) &nbsp;|&nbsp;
-    Pior dia: <strong style="color:var(--danger);">${ins.DOW_NAMES[ins.worstDow]}</strong> (${fmtBRL(ins.dowStats[ins.worstDow].avgRevenue)}/dia)
-  </p></div>`;
-
-  /* Action plan */
-  if (ins.actions.length > 0) {
-    html += `<div class="ins-block"><div class="ins-block-title">Plano de Acao (por impacto estimado no lucro mensal)</div>
-    <ol class="action-list">`;
-    ins.actions.forEach(a => {
-      const typeClass = a.type === 'save' ? 'impact-save' : a.type === 'add' ? 'impact-add' : 'impact-test';
-      const typeLabel = a.type === 'save' ? 'Economia' : a.type === 'add' ? 'Receita' : 'Potencial';
-      html += `<li class="action-item">
-        <div class="action-body"><strong>${esc(a.title)}</strong><span>${esc(a.detail)}</span></div>
-        <div class="action-impact ${typeClass}">${typeLabel}: +${fmtBRL(a.impact)}/mes</div>
-      </li>`;
-    });
-    html += `</ol></div>`;
-  }
-
-  sec.innerHTML = html;
-  sec.style.display = '';
-  sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
 function renderFooter(cfg) {
   const now = new Date().toLocaleString('pt-BR');
   const funnelLabel = cfg.selectedFunnel && cfg.selectedFunnel !== 'ALL' ? cfg.selectedFunnel : 'Todos';
@@ -2434,6 +2695,11 @@ async function loadAndRender() {
     renderSplit(finalData.kpi, finalData.byCampaign, finalData.bySource);
     renderFooter(finalCfg);
 
+    const benchCtx = computeBenchmarkContext(rawVendas, rawMeta, finalCfg, finalData);
+    window._benchCtx = benchCtx;
+    window._analysisContext = buildAnalysisContext(finalCfg, finalData, benchCtx, rawVendas, rawMeta);
+    if (activeDashboardView === 'diagnostico') renderDiagnostico(benchCtx, finalData);
+
     $('clientName').textContent = finalCfg.clientName;
     const period = finalCfg.dateFrom || finalData.byDay[0]?.date || '?';
     const periodEnd = finalCfg.dateTo || finalData.byDay[finalData.byDay.length - 1]?.date || '?';
@@ -2449,7 +2715,6 @@ async function loadAndRender() {
     $('stickyDashTop').style.display = 'flex';
     $('emptyState').style.display = 'none';
     $('filterBar').style.display = '';
-    $('insightsBar').style.display = '';
     $('viewTabs').style.display = '';
     $('configPanel').classList.remove('open');
 
@@ -2491,6 +2756,10 @@ async function refresh() {
   renderTableRecentSales(finalData.vendas);
   renderSplit(finalData.kpi, finalData.byCampaign, finalData.bySource);
   renderFooter(cfg);
+  const benchCtx = computeBenchmarkContext(window._rawVendas, window._rawMeta, cfg, finalData);
+  window._benchCtx = benchCtx;
+  window._analysisContext = buildAnalysisContext(cfg, finalData, benchCtx, window._rawVendas, window._rawMeta);
+  if (activeDashboardView === 'diagnostico') renderDiagnostico(benchCtx, finalData);
   $('clientName').textContent = cfg.clientName;
   const period = cfg.dateFrom || finalData.byDay[0]?.date || '?';
   const periodEnd = cfg.dateTo || finalData.byDay[finalData.byDay.length - 1]?.date || '?';
@@ -2502,9 +2771,6 @@ async function refresh() {
   renderComparisonRangeHint(compareCtx);
   $('stickyUpdated').textContent = 'Atualizado: ' + new Date().toLocaleString('pt-BR') + ' · Periodo: ' + period + ' a ' + periodEnd;
   window._lastFinalData = finalData;
-  if ($('insightsSection').style.display !== 'none') {
-    renderInsights(generateInsights(finalData, cfg));
-  }
   setDashboardView(activeDashboardView);
   showStatus('Filtros aplicados.', 'ok');
 }
@@ -2560,6 +2826,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if ($('filterFunnel')) $('filterFunnel').value = cfg.selectedFunnel || 'ALL';
   if ($('filterComparison')) $('filterComparison').value = cfg.comparisonMode || 'mtd_avg';
   if ($('filterTrafficTax')) $('filterTrafficTax').checked = !!cfg.includeTrafficTax;
+  if ($('diagBenchmarkWindow')) $('diagBenchmarkWindow').value = String(cfg.benchmarkWindowDays || 30);
 
   $('configToggle').addEventListener('click', () => $('configPanel').classList.toggle('open'));
   $('cfgMatchMethod').addEventListener('change', () => {
@@ -2617,25 +2884,39 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window._rawVendas) refresh();
   });
 
-  /* Insights bar */
-  $('btnGenerateInsights').addEventListener('click', () => {
-    if (!window._lastFinalData) return;
-    const cfg = readConfigFromUI();
-    saveConfig(cfg);
-    const ins = generateInsights(window._lastFinalData, cfg);
-    renderInsights(ins);
-  });
-
-  ['insightsTargetType','insightsTargetValue'].forEach(id => {
-    $(id).addEventListener('change', () => {
-      const cfg = readConfigFromUI();
-      saveConfig(cfg);
-    });
-  });
-
   $('tabMain').addEventListener('click', () => setDashboardView('main'));
   $('tabFunnel').addEventListener('click', () => setDashboardView('funnel'));
   $('tabRecentSales').addEventListener('click', () => setDashboardView('recentSales'));
+  $('tabDiagnostico').addEventListener('click', () => setDashboardView('diagnostico'));
+  $('tabActions').addEventListener('click', () => setDashboardView('actions'));
+
+  if ($('diagBenchmarkWindow')) {
+    $('diagBenchmarkWindow').addEventListener('change', () => {
+      const c = readConfigFromUI();
+      saveConfig(c);
+      if (window._rawVendas && window._lastFinalData) refresh();
+    });
+  }
+  if ($('btnExportAnalysis')) $('btnExportAnalysis').addEventListener('click', exportAnalysisPayload);
+  if ($('btnCopyAnalysis')) $('btnCopyAnalysis').addEventListener('click', copyAnalysisPayload);
+  if ($('btnImportActions')) $('btnImportActions').addEventListener('click', importActionsFromText);
+  if ($('btnExportApprovedActions')) $('btnExportApprovedActions').addEventListener('click', exportApprovedActions);
+  if ($('btnSendN8nActions')) $('btnSendN8nActions').addEventListener('click', sendApprovedToN8n);
+  if ($('btnClearActions')) $('btnClearActions').addEventListener('click', () => {
+    if (confirm('Limpar toda a fila de acoes?')) {
+      saveActionsQueue([]);
+      renderActionsQueue();
+    }
+  });
+
+  ['cfgTargetRoas', 'cfgTargetCpaPrincipal', 'cfgTargetTakeOB1', 'cfgTargetMonthlyProfit', 'cfgN8nWebhookUrl'].forEach(id => {
+    const el = $(id);
+    if (el) el.addEventListener('change', () => {
+      const c = readConfigFromUI();
+      saveConfig(c);
+      if (window._rawVendas) refresh();
+    });
+  });
 
   $('funnelMetricToggles').addEventListener('change', () => {
     const bar = $('funnelMetricToggles');
